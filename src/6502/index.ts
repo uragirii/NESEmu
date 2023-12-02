@@ -262,6 +262,14 @@ export class Mos6502 {
         const aaa = opcode >> 5;
 
         switch (cc) {
+          case 0b00: {
+            // branch ins
+            // xxy10000
+            const y = (opcode & 0b10_0000) >> 5;
+            const xx = opcode >> 6;
+
+            break;
+          }
           case 0b01: {
             // group 1
             const mode = ADDRESSING_C_01[bbb];
