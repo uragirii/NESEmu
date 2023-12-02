@@ -1,24 +1,34 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+// import { I8080 } from "./8080";
+import "./style.css";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+// first lets make a disambelly
+const loadRomInput = document.getElementById("loadRom")!;
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+const readFileAsBinary = (file: File): Promise<ArrayBuffer> => {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+
+    fileReader.onload = (e) => {
+      const result = e.target?.result as ArrayBuffer;
+      resolve(result);
+    };
+
+    fileReader.onerror = (e) => {
+      console.log("error while reading file", e);
+      reject(e.target?.error);
+    };
+
+    fileReader.readAsArrayBuffer(file);
+  });
+};
+
+loadRomInput.onchange = async (e) => {
+  const file: File | undefined = (e.target as HTMLInputElement)?.files?.[0];
+  if (!file) {
+    return;
+  }
+  const buffer = await readFileAsBinary(file);
+  console.log(buffer);
+  // const i8080 = new I8080(buffer, true);
+  // i8080.printRegistors();
+};
