@@ -6,6 +6,8 @@ import {
   MEMORY_SIZE,
 } from "./constants";
 import { AddressingMode } from "./types";
+import { StatusReg } from "./utilClasses";
+import { getSignedInt } from "./utilts";
 
 export class Mos6502 {
   memory = new Uint8Array(MEMORY_SIZE);
@@ -25,6 +27,7 @@ export class Mos6502 {
   }
   set acc(val: number) {
     this._accumulator[0] = val;
+    this.statusReg.setAccFlags(this._accumulator[0]);
   }
 
   private _x = new Uint8Array([0]);
@@ -33,6 +36,7 @@ export class Mos6502 {
   }
   set x(val: number) {
     this._x[0] = val;
+    this.statusReg.setAccFlags(this._x[0]);
   }
 
   private _y = new Uint8Array([0]);
@@ -41,10 +45,11 @@ export class Mos6502 {
   }
   set y(val: number) {
     this._y[0] = val;
+    this.statusReg.setAccFlags(this._y[0]);
   }
 
   // todo: better way of handling status reg
-  statusReg = 0;
+  statusReg = new StatusReg();
 
   // stack starts from 0x1ff and grows down
   private _stackPointer = new Uint8Array([0xff]);
@@ -95,7 +100,7 @@ export class Mos6502 {
       `PC : 0x${this.programCounter.toString(16)}, ${this.programCounter}`
     );
     console.log(
-      `Status : 0b${this.statusReg.toString(2).padStart(8, "0")}, ${
+      `Status : 0b${this.statusReg.status.toString(2).padStart(8, "0")}, ${
         this.statusReg
       }`
     );
@@ -190,12 +195,17 @@ export class Mos6502 {
     }
   };
 
+  private jumpTo(address: number) {
+    console.log(`jumping to 0x${address.toString(16)}`);
+    this.programCounter = address;
+  }
+
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
       case 0xd8: {
         // cld
         // Clear Decimal Mode
-        this.statusReg = this.statusReg & 0b01;
+        this.statusReg.decimal = 0;
         await this.emuCycle(2);
         break;
       }
@@ -242,7 +252,7 @@ export class Mos6502 {
         // jmp
         // abs
         const address = this.fetch2Bytes();
-        this.programCounter = address;
+        this.jumpTo(address);
         await this.emuCycle(3);
         break;
       }
@@ -251,7 +261,7 @@ export class Mos6502 {
         // indirect
         const value = this.fetch2Bytes();
         const address = this.read2Bytes(value);
-        this.programCounter = address;
+        this.jumpTo(address);
         await this.emuCycle(5);
         break;
       }
@@ -267,6 +277,16 @@ export class Mos6502 {
             // xxy10000
             const y = (opcode & 0b10_0000) >> 5;
             const xx = opcode >> 6;
+
+            const offset = getSignedInt(this.fetchOpcode());
+            console.log(offset, this.programCounter + offset);
+            if (this.statusReg.checkBranchCondition(xx, y)) {
+              this.jumpTo(this.programCounter + offset);
+              await this.emuCycle(3);
+              debugger;
+            } else {
+              await this.emuCycle(2);
+            }
 
             break;
           }
