@@ -5,6 +5,7 @@ import {
   DEBUG_LOC,
   MEMORY_SIZE,
 } from "./constants";
+import { throwUnknown } from "./errors";
 import { AddressingMode } from "./types";
 import { StatusReg } from "./utilClasses";
 import { getSignedInt } from "./utilts";
@@ -202,10 +203,54 @@ export class Mos6502 {
 
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
+      case 0x18: {
+        // clc
+        this.statusReg.carry = 0;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0x38: {
+        //sec
+        this.statusReg.carry = 1;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0x58: {
+        //sec
+        this.statusReg.interrupt = 0;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0x78: {
+        //sec
+        this.statusReg.interrupt = 1;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0x88: {
+        // dey
+        // imposter
+        this.y--;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0xb8: {
+        //sec
+        this.statusReg.overflow = 0;
+        await this.emuCycle(2);
+        break;
+      }
       case 0xd8: {
         // cld
         // Clear Decimal Mode
         this.statusReg.decimal = 0;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0xf8: {
+        // sed
+        // set Decimal Mode
+        this.statusReg.decimal = 1;
         await this.emuCycle(2);
         break;
       }
@@ -265,6 +310,13 @@ export class Mos6502 {
         await this.emuCycle(5);
         break;
       }
+      case 0x98: {
+        // tya
+        // Y -> A
+        this.acc = this.y;
+        await this.emuCycle(2);
+        break;
+      }
       default: {
         // opcode is aaabbbcc
         const cc = opcode & 0b11;
@@ -273,19 +325,46 @@ export class Mos6502 {
 
         switch (cc) {
           case 0b00: {
-            // branch ins
-            // xxy10000
-            const y = (opcode & 0b10_0000) >> 5;
-            const xx = opcode >> 6;
+            if (bbb === 0b100) {
+              // branch ins
+              // xxy10000
+              const y = (opcode & 0b10_0000) >> 5;
+              const xx = opcode >> 6;
 
-            const offset = getSignedInt(this.fetchOpcode());
-            console.log(offset, this.programCounter + offset);
-            if (this.statusReg.checkBranchCondition(xx, y)) {
-              this.jumpTo(this.programCounter + offset);
-              await this.emuCycle(3);
-              debugger;
+              const offset = getSignedInt(this.fetchOpcode());
+              console.log(offset, this.programCounter + offset);
+              if (this.statusReg.checkBranchCondition(xx, y)) {
+                this.jumpTo(this.programCounter + offset);
+                await this.emuCycle(3);
+              } else {
+                await this.emuCycle(2);
+              }
             } else {
-              await this.emuCycle(2);
+              const mode = ADDRESSING_C_10[bbb];
+              if (mode === "accumulator") {
+                throw new Error(
+                  "invalid mode accumulator, cc 00 doesn't have that"
+                );
+              }
+              switch (aaa) {
+                case 0b101: {
+                  //ldy
+                  const { value } = await this.getAddressing(mode);
+                  if (!value) {
+                    throw new Error(
+                      `ldy incorrect no value, ${opcode.toString(
+                        16
+                      )} mode:${mode}`
+                    );
+                  }
+                  this.y = value;
+                  await this.emuCycle(4);
+                  break;
+                }
+                default: {
+                  throwUnknown(opcode);
+                }
+              }
             }
 
             break;
@@ -324,7 +403,7 @@ export class Mos6502 {
                 break;
               }
               default: {
-                throw new Error(`unknown opcode ${opcode.toString(16)}`);
+                throwUnknown(opcode);
               }
             }
             break;
@@ -349,13 +428,13 @@ export class Mos6502 {
                 break;
               }
               default: {
-                throw new Error(`unknown opcode ${opcode.toString(16)}`);
+                throwUnknown(opcode);
               }
             }
             break;
           }
           default: {
-            throw new Error(`unknown opcode ${opcode.toString(16)}`);
+            throwUnknown(opcode);
           }
         }
       }
