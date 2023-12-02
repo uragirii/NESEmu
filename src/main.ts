@@ -1,4 +1,4 @@
-// import { I8080 } from "./8080";
+import { Mos6502 } from "./6502";
 import "./style.css";
 
 // first lets make a disambelly
@@ -28,7 +28,11 @@ loadRomInput.onchange = async (e) => {
     return;
   }
   const buffer = await readFileAsBinary(file);
-  console.log(buffer);
-  // const i8080 = new I8080(buffer, true);
-  // i8080.printRegistors();
+  const mos6502 = new Mos6502(buffer, 0x400);
+  try {
+    await mos6502.startExecution();
+  } catch (error) {
+    console.error(error);
+    mos6502.dumpRegisters();
+  }
 };
