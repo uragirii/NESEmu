@@ -78,14 +78,16 @@ export class Mos6502 {
     return this.memory[this.programCounter++];
   };
 
-  public startExecution = async () => {
-    while (this.programCounter < this.memory.length) {
+  public startExecution = async (instructions?: number) => {
+    let remainingIns = instructions ?? Infinity;
+    while (this.programCounter < this.memory.length && remainingIns > 0) {
       if (this.programCounter === DEBUG_LOC) {
         debugger;
       }
 
       const opcode = this.fetchOpcode();
       await this.executeOpcode(opcode);
+      remainingIns--;
     }
   };
 
@@ -197,7 +199,6 @@ export class Mos6502 {
   };
 
   private jumpTo(address: number) {
-    console.log(`jumping to 0x${address.toString(16)}`);
     this.programCounter = address;
   }
 
@@ -342,7 +343,6 @@ export class Mos6502 {
               const xx = opcode >> 6;
 
               const offset = getSignedInt(this.fetchOpcode());
-              console.log(offset, this.programCounter + offset);
               if (this.statusReg.checkBranchCondition(xx, y)) {
                 this.jumpTo(this.programCounter + offset);
                 await this.emuCycle(3);
