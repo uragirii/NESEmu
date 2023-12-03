@@ -201,6 +201,16 @@ export class Mos6502 {
     this.programCounter = address;
   }
 
+  private isOverflowInADC(first: number, second: number, result: number) {
+    // overflow happpens when first and second as same sign but result is different sign
+    const MASK = 0b1000_0000;
+    const firstSign = (first & MASK) === MASK;
+    const secondSign = (second & MASK) === MASK;
+    const resultSign = (result & MASK) === MASK;
+
+    return firstSign === secondSign && resultSign !== firstSign;
+  }
+
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
       case 0x18: {
@@ -373,6 +383,32 @@ export class Mos6502 {
             // group 1
             const mode = ADDRESSING_C_01[bbb];
             switch (aaa) {
+              case 0b011: {
+                //adc
+                // a+m+c -> val;
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `adc incorrect no value, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                const total = this.acc + value + this.statusReg.carry;
+
+                this.statusReg.carry = total > 0xff;
+
+                this.statusReg.overflow = this.isOverflowInADC(
+                  this.acc,
+                  value,
+                  total
+                );
+
+                this.acc = total;
+                await this.emuCycle(4);
+
+                break;
+              }
               case 0b100: {
                 // sta
                 // A -> M;
