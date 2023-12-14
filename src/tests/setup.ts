@@ -3,7 +3,7 @@ import fs from "fs";
 import { JSON_FOLDER, TESTABLE_OPCODES } from "./constants";
 
 const GITHUB_LINK =
-  "https://raw.githubusercontent.com/TomHarte/ProcessorTests/main/6502/v1/";
+  "https://raw.githubusercontent.com/TomHarte/ProcessorTests/main/nes6502/v1/";
 
 const downloadTest = async (opcode: string) => {
   console.log(`Downloading tests for 0x${opcode}`);
