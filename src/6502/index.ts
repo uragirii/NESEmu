@@ -194,9 +194,9 @@ export class Mos6502 {
         };
       }
       case "x-indirect": {
-        const ll = this.fetchOpcode() + this.x;
+        const ll = (this.fetchOpcode() + this.x) & 0xff;
         const lb = this.memory[ll];
-        const hb = this.memory[ll + 1];
+        const hb = this.memory[(ll + 1) & 0xff];
         const address = (hb << 8) | lb;
 
         return {
