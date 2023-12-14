@@ -164,7 +164,7 @@ export class Mos6502 {
       case "zpg-x": {
         const lb = this.fetchOpcode();
 
-        const address = this.x + lb;
+        const address = (this.x + lb) & 0xff;
         return {
           address,
           value: this.memory[address],
@@ -198,6 +198,17 @@ export class Mos6502 {
         const lb = this.memory[ll];
         const hb = this.memory[(ll + 1) & 0xff];
         const address = (hb << 8) | lb;
+
+        return {
+          address,
+          value: this.memory[address],
+        };
+      }
+      case "indirect-y": {
+        const ll = this.fetchOpcode();
+        const lb = this.memory[ll];
+        const hb = this.memory[(ll + 1) & 0xff];
+        const address = (((hb << 8) | lb) + this.y) & 0xffff;
 
         return {
           address,
