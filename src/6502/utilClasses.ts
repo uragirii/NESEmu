@@ -30,7 +30,13 @@ export class StatusReg {
   }
 
   set status(val: number) {
-    throw new Error("status set not implemented");
+    // Convert the status value to a binary array
+    const binaryStatus = val.toString(2).padStart(ORDER.length, "0").split("");
+
+    // Set individual flags based on the binary array
+    for (let i = 0; i < ORDER.length; i++) {
+      this[`_${ORDER[i]}`] = parseInt(binaryStatus[i]);
+    }
   }
 
   public get negative(): number {
