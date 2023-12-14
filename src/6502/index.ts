@@ -158,7 +158,8 @@ export class Mos6502 {
         };
       }
       case "absolute": {
-        return { value: null, address: this.fetch2Bytes() };
+        const address = this.fetch2Bytes();
+        return { value: this.memory[address], address };
       }
       case "zpg-x": {
         const lb = this.fetchOpcode();
