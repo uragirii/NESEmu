@@ -180,17 +180,28 @@ export class Mos6502 {
         };
       }
       case "abs-x": {
-        const address = this.fetch2Bytes() + this.x;
+        const address = (this.fetch2Bytes() + this.x) & 0xffff;
         return {
           address,
-          value: null,
+          value: this.memory[address],
         };
       }
       case "abs-y": {
-        const address = this.fetch2Bytes() + this.y;
+        const address = (this.fetch2Bytes() + this.y) & 0xffff;
         return {
           address,
-          value: null,
+          value: this.memory[address],
+        };
+      }
+      case "x-indirect": {
+        const ll = this.fetchOpcode() + this.x;
+        const lb = this.memory[ll];
+        const hb = this.memory[ll + 1];
+        const address = (hb << 8) | lb;
+
+        return {
+          address,
+          value: this.memory[address],
         };
       }
       default: {
