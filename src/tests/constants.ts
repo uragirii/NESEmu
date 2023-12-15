@@ -11,6 +11,8 @@ const CMP_OPCODES = ["c9", "c5", "d5", "cd", "dd", "d9", "c1", "d1"];
 const ORA_OPCODES = ["01", "05", "09", "0d", "11", "15", "19", "1d"];
 const AND_OPCODES = ["21", "25", "29", "2d", "31", "35", "39", "3d"];
 const EOR_OPCODES = ["41", "45", "49", "4d", "51", "55", "59", "5d"];
+const CMX_OPCODES = ["e0", "e4", "ec"];
+const CMY_OPCODES = ["c0", "c4", "cc"];
 
 export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   ADC_OPCODES,
@@ -25,7 +27,9 @@ export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   CMP_OPCODES,
   ORA_OPCODES,
   AND_OPCODES,
-  EOR_OPCODES
+  EOR_OPCODES,
+  CMX_OPCODES,
+  CMY_OPCODES
 );
 
 export const JSON_FOLDER = "testJsons";

@@ -145,6 +145,12 @@ export class Mos6502 {
     return this.make16Bytes(_lb, _hb);
   };
 
+  private compare = (acc: number, value: number) => {
+    const diff = acc - value;
+    this.statusReg.carry = diff >= 0;
+    this.statusReg.setAccFlags(diff);
+  };
+
   private getAddressing = async (
     mode: AddressingMode
   ): Promise<{ address: null | number; value: null | number }> => {
@@ -401,9 +407,34 @@ export class Mos6502 {
                   await this.emuCycle(4);
                   break;
                 }
-                // case 0b110:{
-                //   //cpy
-                // }
+                case 0b110: {
+                  //cpy
+                  const { value } = await this.getAddressing(mode);
+                  if (value === null) {
+                    throw new Error(
+                      `cpy incorrect no value, ${opcode.toString(
+                        16
+                      )} mode:${mode}`
+                    );
+                  }
+                  this.compare(this.y, value);
+                  await this.emuCycle(3);
+                  break;
+                }
+                case 0b111: {
+                  //cpx
+                  const { value } = await this.getAddressing(mode);
+                  if (value === null) {
+                    throw new Error(
+                      `cpx incorrect no value, ${opcode.toString(
+                        16
+                      )} mode:${mode}`
+                    );
+                  }
+                  this.compare(this.x, value);
+                  await this.emuCycle(3);
+                  break;
+                }
                 default: {
                   throwUnknown(opcode);
                 }
@@ -523,9 +554,7 @@ export class Mos6502 {
                     )} mode:${mode}`
                   );
                 }
-                const diff = this.acc - value;
-                this.statusReg.carry = diff >= 0;
-                this.statusReg.setAccFlags(diff);
+                this.compare(this.acc, value);
                 await this.emuCycle(4);
                 break;
               }
