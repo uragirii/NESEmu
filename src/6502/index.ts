@@ -110,6 +110,9 @@ export class Mos6502 {
   };
 
   private emuCycle = async (cycles: number) => {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
     this._cycles += cycles;
 
     const time = (this._cycles / CYCLES_PER_SECOND) * 1000;
@@ -398,6 +401,9 @@ export class Mos6502 {
                   await this.emuCycle(4);
                   break;
                 }
+                // case 0b110:{
+                //   //cpy
+                // }
                 default: {
                   throwUnknown(opcode);
                 }
@@ -410,6 +416,48 @@ export class Mos6502 {
             // group 1
             const mode = ADDRESSING_C_01[bbb];
             switch (aaa) {
+              case 0b000: {
+                // ora
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `ora incorrect no address, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                this.acc = this.acc | value;
+                await this.emuCycle(4);
+                break;
+              }
+              case 0b001: {
+                // and
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `ora incorrect no address, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                this.acc = this.acc & value;
+                await this.emuCycle(4);
+                break;
+              }
+              case 0b010: {
+                // eor
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `ora incorrect no address, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                this.acc = this.acc ^ value;
+                await this.emuCycle(4);
+                break;
+              }
               case 0b011: {
                 //adc
                 // a+m+c -> val;
@@ -462,6 +510,22 @@ export class Mos6502 {
                   );
                 }
                 this.acc = value;
+                await this.emuCycle(4);
+                break;
+              }
+              case 0b110: {
+                // cmp
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `cmp incorrect no value, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                const diff = this.acc - value;
+                this.statusReg.carry = diff >= 0;
+                this.statusReg.setAccFlags(diff);
                 await this.emuCycle(4);
                 break;
               }

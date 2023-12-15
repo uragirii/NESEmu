@@ -7,6 +7,10 @@ const STA_OPCODES = ["85", "95", "8d", "9d", "99", "81", "91"];
 const BRANCH_OPCODES = ["90", "b0", "f0", "30", "d0", "10"];
 const DEC_OPCODES = ["ca", "88"];
 const LDY = ["a0", "a4", "b4", "ac", "bc"];
+const CMP_OPCODES = ["c9", "c5", "d5", "cd", "dd", "d9", "c1", "d1"];
+const ORA_OPCODES = ["01", "05", "09", "0d", "11", "15", "19", "1d"];
+const AND_OPCODES = ["21", "25", "29", "2d", "31", "35", "39", "3d"];
+const EOR_OPCODES = ["41", "45", "49", "4d", "51", "55", "59", "5d"];
 
 export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   ADC_OPCODES,
@@ -17,7 +21,11 @@ export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   STA_OPCODES,
   BRANCH_OPCODES,
   DEC_OPCODES,
-  LDY
+  LDY,
+  CMP_OPCODES,
+  ORA_OPCODES,
+  AND_OPCODES,
+  EOR_OPCODES
 );
 
 export const JSON_FOLDER = "testJsons";
