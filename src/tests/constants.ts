@@ -13,6 +13,7 @@ const AND_OPCODES = ["21", "25", "29", "2d", "31", "35", "39", "3d"];
 const EOR_OPCODES = ["41", "45", "49", "4d", "51", "55", "59", "5d"];
 const CMX_OPCODES = ["e0", "e4", "ec"];
 const CMY_OPCODES = ["c0", "c4", "cc"];
+const STACK_OPCODES = ["08", "28", "48", "68"];
 
 export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   ADC_OPCODES,
@@ -29,7 +30,8 @@ export const TESTABLE_OPCODES: string[] = ([] as string[]).concat(
   AND_OPCODES,
   EOR_OPCODES,
   CMX_OPCODES,
-  CMY_OPCODES
+  CMY_OPCODES,
+  STACK_OPCODES
 );
 
 export const JSON_FOLDER = "testJsons";

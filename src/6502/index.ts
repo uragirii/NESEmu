@@ -249,12 +249,36 @@ export class Mos6502 {
     return firstSign === secondSign && resultSign !== firstSign;
   }
 
+  private pushOnStack = (val: number) => {
+    this.memory[this.stackPointer] = val;
+    this.stackPointer--;
+  };
+
+  private pullFromStack = () => {
+    this.stackPointer++;
+    const val = this.memory[this.stackPointer];
+    return val;
+  };
+
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
+      case 0x08: {
+        // php
+        // while pushing BRK flag is set
+        this.pushOnStack(this.statusReg.status | 0b1_0000);
+        await this.emuCycle(3);
+        break;
+      }
       case 0x18: {
         // clc
         this.statusReg.carry = 0;
         await this.emuCycle(2);
+        break;
+      }
+      case 0x28: {
+        // plp
+        this.statusReg.status = this.pullFromStack();
+        await this.emuCycle(4);
         break;
       }
       case 0x38: {
@@ -263,10 +287,22 @@ export class Mos6502 {
         await this.emuCycle(2);
         break;
       }
+      case 0x48: {
+        // pha
+        this.pushOnStack(this.acc);
+        await this.emuCycle(3);
+        break;
+      }
       case 0x58: {
         //sec
         this.statusReg.interrupt = 0;
         await this.emuCycle(2);
+        break;
+      }
+      case 0x68: {
+        // pla
+        this.acc = this.pullFromStack();
+        await this.emuCycle(4);
         break;
       }
       case 0x78: {
@@ -282,9 +318,29 @@ export class Mos6502 {
         await this.emuCycle(2);
         break;
       }
+      case 0x98: {
+        // tya
+        // Y -> A
+        this.acc = this.y;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0xa8: {
+        // tay
+        // a -> x
+        this.y = this.acc;
+        await this.emuCycle(2);
+        break;
+      }
       case 0xb8: {
         //sec
         this.statusReg.overflow = 0;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0xc8: {
+        //iny
+        this.y++;
         await this.emuCycle(2);
         break;
       }
@@ -292,6 +348,12 @@ export class Mos6502 {
         // cld
         // Clear Decimal Mode
         this.statusReg.decimal = 0;
+        await this.emuCycle(2);
+        break;
+      }
+      case 0xe8: {
+        //inx
+        this.x++;
         await this.emuCycle(2);
         break;
       }
@@ -357,13 +419,6 @@ export class Mos6502 {
         await this.emuCycle(5);
         break;
       }
-      case 0x98: {
-        // tya
-        // Y -> A
-        this.acc = this.y;
-        await this.emuCycle(2);
-        break;
-      }
       default: {
         // opcode is aaabbbcc
         const cc = opcode & 0b11;
@@ -389,7 +444,9 @@ export class Mos6502 {
               const mode = ADDRESSING_C_10[bbb];
               if (mode === "accumulator") {
                 throw new Error(
-                  "invalid mode accumulator, cc 00 doesn't have that"
+                  `invalid mode accumulator, cc 00 doesn't have that. Opcode: ${opcode.toString(
+                    16
+                  )}`
                 );
               }
               switch (aaa) {

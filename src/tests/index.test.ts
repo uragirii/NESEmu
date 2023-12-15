@@ -18,7 +18,9 @@ describe.each(TESTABLE_OPCODES)(`tests %s`, async (opcode) => {
     mos.x = initial.x;
     mos.y = initial.y;
     mos.stackPointer = initial.s;
-    mos.statusReg.status = initial.p;
+    // fix for bit 4&5. BRK and Ignored are harcoded as 1
+    // See https://github.com/TomHarte/ProcessorTests/issues/59
+    mos.statusReg.status = initial.p | 0x30;
 
     await mos.startExecution(1);
 
@@ -26,7 +28,7 @@ describe.each(TESTABLE_OPCODES)(`tests %s`, async (opcode) => {
     expect(mos.x).eq(final.x);
     expect(mos.y).eq(final.y);
     expect(mos.stackPointer & 0xff).eq(final.s);
-    expect(mos.statusReg.status).eq(final.p);
+    expect(mos.statusReg.status | 0x30).eq(final.p | 0x30);
     expect(mos.programCounter).eq(final.pc);
 
     // ram status
