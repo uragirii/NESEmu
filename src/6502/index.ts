@@ -128,13 +128,18 @@ export class Mos6502 {
   private fetch2Bytes = () => {
     const lb = this.fetchOpcode();
     const hb = this.fetchOpcode();
-    return (hb << 8) | lb;
+    return this.make16Bytes(lb, hb);
   };
 
-  private read2Bytes = (address: number) => {
-    const lb = this.memory[address];
-    const hb = this.memory[address + 1];
-    return (hb << 8) | lb;
+  private make16Bytes = (lb: number, hb: number) => {
+    const _lb = lb & 0xff;
+    return ((hb << 8) | _lb) & 0xffff;
+  };
+
+  private read2Bytes = (lb: number, hb: number) => {
+    const _lb = this.memory[this.make16Bytes(lb, hb)];
+    const _hb = this.memory[this.make16Bytes(lb + 1, hb)];
+    return this.make16Bytes(_lb, _hb);
   };
 
   private getAddressing = async (
@@ -173,7 +178,7 @@ export class Mos6502 {
       case "zpg-y": {
         const lb = this.fetchOpcode();
 
-        const address = this.y + lb;
+        const address = (this.y + lb) & 0xff;
         return {
           address,
           value: this.memory[address],
@@ -197,7 +202,7 @@ export class Mos6502 {
         const ll = (this.fetchOpcode() + this.x) & 0xff;
         const lb = this.memory[ll];
         const hb = this.memory[(ll + 1) & 0xff];
-        const address = (hb << 8) | lb;
+        const address = this.make16Bytes(lb, hb);
 
         return {
           address,
@@ -208,7 +213,7 @@ export class Mos6502 {
         const ll = this.fetchOpcode();
         const lb = this.memory[ll];
         const hb = this.memory[(ll + 1) & 0xff];
-        const address = (((hb << 8) | lb) + this.y) & 0xffff;
+        const address = (this.make16Bytes(lb, hb) + this.y) & 0xffff;
 
         return {
           address,
@@ -338,8 +343,7 @@ export class Mos6502 {
       case 0x6c: {
         // jmp
         // indirect
-        const value = this.fetch2Bytes();
-        const address = this.read2Bytes(value);
+        const address = this.read2Bytes(this.fetchOpcode(), this.fetchOpcode());
         this.jumpTo(address);
         await this.emuCycle(5);
         break;
@@ -383,7 +387,7 @@ export class Mos6502 {
                 case 0b101: {
                   //ldy
                   const { value } = await this.getAddressing(mode);
-                  if (!value) {
+                  if (value === null) {
                     throw new Error(
                       `ldy incorrect no value, ${opcode.toString(
                         16
