@@ -419,6 +419,25 @@ export class Mos6502 {
         await this.emuCycle(5);
         break;
       }
+      case 0x20: {
+        //jsr
+        const lb = (this.programCounter + 1) & 0xff;
+        const hb = (this.programCounter + 1) >> 8;
+        this.pushOnStack(hb);
+        this.pushOnStack(lb);
+        const jumpAddress = this.fetch2Bytes();
+        this.jumpTo(jumpAddress);
+        await this.emuCycle(3);
+        break;
+      }
+      case 0x60: {
+        // rts
+        const lb = this.pullFromStack();
+        const hb = this.pullFromStack();
+        this.jumpTo(this.make16Bytes(lb, hb) + 1);
+        await this.emuCycle(6);
+        break;
+      }
       default: {
         // opcode is aaabbbcc
         const cc = opcode & 0b11;
