@@ -14,7 +14,7 @@ const BRANCH_ORDER = ["negative", "overflow", "carry", "zero"] as const;
 export class StatusReg {
   private _negative = 0;
   private _overflow = 0;
-  private _ignored = 0;
+  private _ignored = 1;
   private _break = 0;
   private _decimal = 0;
   private _interrupt = 0;

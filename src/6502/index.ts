@@ -265,7 +265,7 @@ export class Mos6502 {
       case 0x08: {
         // php
         // while pushing BRK flag is set
-        this.pushOnStack(this.statusReg.status | 0b1_0000);
+        this.pushOnStack(this.statusReg.status | 0b110000);
         await this.emuCycle(3);
         break;
       }
