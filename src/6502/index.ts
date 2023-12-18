@@ -78,7 +78,11 @@ export class Mos6502 {
     return this.memory[this.programCounter++];
   };
 
-  public startExecution = async (instructions?: number) => {
+  public startExecution = async (
+    instructions?: number,
+    beforeExec?: (opcode: number) => void,
+    afterExec?: (opcode: number) => void
+  ) => {
     let remainingIns = instructions ?? Infinity;
     while (this.programCounter < this.memory.length && remainingIns > 0) {
       if (this.programCounter === DEBUG_LOC) {
@@ -86,7 +90,9 @@ export class Mos6502 {
       }
 
       const opcode = this.fetchOpcode();
+      beforeExec?.(opcode);
       await this.executeOpcode(opcode);
+      afterExec?.(opcode);
       remainingIns--;
     }
   };

@@ -4,11 +4,42 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>6502 Emulator Playground</title>
   </head>
   <body>
-    <div id="app">
-      <input type="file" name="loadRom" id="loadRom" />
+    <div class="content">
+      <h1>6502 Emulator Playground</h1>
+      <div class="box-container">
+        <div class="registers box">
+          <h2>Registers</h2>
+          <div>
+            <div class="code-container" id="main-reg">
+              <code>A: --</code>
+              <code>X: --</code>
+              <code>Y: --</code>
+            </div>
+            <hr />
+            <div class="code-container" id="other-reg">
+              <code>PC: --</code>
+              <code>SP: --</code>
+              <code>Status: -----</code>
+            </div>
+          </div>
+        </div>
+        <div class="memory box">
+          <h2>Memory Line</h2>
+          <div>
+            <div>
+              <code id="memory">0x00: 0x00 0x00 0x00 0x00</code>
+            </div>
+            <code id="opcode"> Opcode : -- </code>
+          </div>
+        </div>
+      </div>
+
+      <div id="app">
+        <input type="file" name="loadRom" id="loadRom" />
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -94,3 +94,41 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.box {
+  border-radius: 8px;
+  border: 1px dotted beige;
+  padding: 1em;
+  padding-top: 0;
+  flex: 1;
+}
+
+.content {
+  max-width: 1000px;
+  flex-direction: column;
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.box-container {
+  display: flex;
+  gap: 1em;
+  flex-direction: row;
+}
+
+h2 {
+  text-align: center;
+  color: beige;
+}
+
+h1 {
+  text-align: center;
+  color: beige;
+}
+
+.code-container {
+  display: flex;
+  justify-content: space-between;
+}
