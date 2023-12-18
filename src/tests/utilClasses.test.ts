@@ -18,10 +18,10 @@ describe("StatusReg class", () => {
     statusReg.negative = 1;
     statusReg.overflow = 1;
 
-    expect(statusReg.status).toBe(0b1100_0000); // 011 in binary
+    expect(statusReg.status).toBe(0b1110_0000); // 011 in binary
 
     statusReg.zero = 1;
-    expect(statusReg.status).toBe(0b1100_0010); // 111 in binary
+    expect(statusReg.status).toBe(0b1110_0010); // 111 in binary
   });
 
   it("set status should set individual flags based on binary value", () => {

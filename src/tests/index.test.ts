@@ -8,8 +8,9 @@ describe.each(TESTABLE_OPCODES)(`tests %s`, async (opcode) => {
   const opcodeTests = await getOpcodeTests(opcode);
   console.log(`Loaded ${opcodeTests.length} for ${opcode}`);
 
+  const buffer = new Uint8Array(MEMORY_SIZE);
+
   test.each(opcodeTests)("[%#] $name", async ({ initial, final }) => {
-    const buffer = new Uint8Array(MEMORY_SIZE);
     initial.ram.forEach(([loc, val]) => (buffer[loc] = val));
     const mos = new Mos6502(buffer, initial.pc);
 
@@ -38,5 +39,9 @@ describe.each(TESTABLE_OPCODES)(`tests %s`, async (opcode) => {
     final.ram.forEach(([loc, val]) => {
       expect(memory[loc]).eq(val);
     });
+
+    // clear the buffer
+    initial.ram.forEach(([loc]) => (buffer[loc] = 0));
+    final.ram.forEach(([loc]) => (buffer[loc] = 0));
   });
 });
