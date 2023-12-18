@@ -268,6 +268,27 @@ export class Mos6502 {
 
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
+      case 0x00: {
+        // brk
+        // #FFFE
+        const vectorAddress = this.make16Bytes(
+          this.memory[0xfffe],
+          this.memory[0xffff]
+        );
+        // dummy fetch nothing happens
+        const _signature = this.fetchOpcode();
+
+        const lb = this.programCounter & 0xff;
+        const hb = this.programCounter >> 8;
+        this.pushOnStack(hb);
+        this.pushOnStack(lb);
+        this.statusReg.break = true;
+        this.pushOnStack(this.statusReg.status);
+        this.statusReg.interrupt = true;
+        this.jumpTo(vectorAddress);
+        await this.emuCycle(7);
+        break;
+      }
       case 0x08: {
         // php
         // while pushing BRK flag is set
@@ -648,11 +669,11 @@ export class Mos6502 {
           }
           case 0b10: {
             // group 2
-
+            const mode = ADDRESSING_C_10[bbb];
             switch (aaa) {
               case 0b101: {
                 //ldx
-                const mode = ADDRESSING_C_10[bbb];
+
                 const { value } = await this.getAddressing(
                   mode.replace("x", "y") as AddressingMode
                 );
@@ -662,6 +683,20 @@ export class Mos6502 {
                   );
                 }
                 this.x = value;
+                await this.emuCycle(4);
+                break;
+              }
+              case 0b100: {
+                // stx
+                const { address } = await this.getAddressing(
+                  mode.replace("x", "y") as AddressingMode
+                );
+                if (address === null) {
+                  throw new Error(
+                    `stx incorrect no address, ${opcode.toString(16)}`
+                  );
+                }
+                this.memory[address] = this.x;
                 await this.emuCycle(4);
                 break;
               }
