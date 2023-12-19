@@ -63,13 +63,14 @@ export class Mos6502 {
 
   private _cycles = 0;
 
-  constructor(buffer: ArrayBuffer, startPos?: number) {
+  constructor(buffer: ArrayBuffer, startPos?: number, loadPos?: number) {
     if (buffer.byteLength > MEMORY_SIZE) {
       throw new Error(
         `INSUFFICIENT_MEMORY: Received ROM with bytelength ${buffer.byteLength}. Max supported size ${MEMORY_SIZE}`
       );
     }
-    this.memory.set(new Uint8Array(buffer));
+    console.log("PC", startPos?.toString(16), "Offset", loadPos?.toString(16));
+    this.memory.set(new Uint8Array(buffer), loadPos);
 
     this.programCounter = startPos ?? 0;
   }
@@ -242,6 +243,14 @@ export class Mos6502 {
   };
 
   private jumpTo(address: number) {
+    // if (
+    //   address === this.programCounter ||
+    //   address === this.programCounter - 1
+    // ) {
+    //   console.log("infinte loop");
+    //   debugger;
+    //   throw new Error("Infinite Loop " + address);
+    // }
     this.programCounter = address;
   }
 
@@ -465,6 +474,20 @@ export class Mos6502 {
         await this.emuCycle(6);
         break;
       }
+      case 0x40: {
+        // rti
+        const status = this.pullFromStack();
+        const prevBreak = this.statusReg.break;
+        this.statusReg.status = status;
+        this.statusReg.break = prevBreak;
+
+        const lb = this.pullFromStack();
+        const hb = this.pullFromStack();
+
+        this.jumpTo(this.make16Bytes(lb, hb));
+        await this.emuCycle(6);
+        break;
+      }
       default: {
         // opcode is aaabbbcc
         const cc = opcode & 0b11;
@@ -536,6 +559,20 @@ export class Mos6502 {
                   }
                   this.compare(this.x, value);
                   await this.emuCycle(3);
+                  break;
+                }
+                case 0b100: {
+                  // sty
+                  const { address } = await this.getAddressing(mode);
+                  if (address === null) {
+                    throw new Error(
+                      `sty incorrect no address, ${opcode.toString(
+                        16
+                      )} mode:${mode}`
+                    );
+                  }
+                  this.memory[address] = this.y;
+                  await this.emuCycle(4);
                   break;
                 }
                 default: {
