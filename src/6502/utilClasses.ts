@@ -35,6 +35,9 @@ export class StatusReg {
 
     // Set individual flags based on the binary array
     for (let i = 0; i < ORDER.length; i++) {
+      if (ORDER[i] === "ignored") {
+        continue;
+      }
       this[`_${ORDER[i]}`] = parseInt(binaryStatus[i]);
     }
   }
