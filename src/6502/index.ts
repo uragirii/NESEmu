@@ -519,6 +519,28 @@ export class Mos6502 {
                 );
               }
               switch (aaa) {
+                case 0b001: {
+                  // bit
+                  if (opcode !== 0x24 && opcode !== 0x2c) {
+                    throwUnknown(opcode);
+                  }
+                  const { value } = await this.getAddressing(mode);
+                  if (value === null) {
+                    throw new Error(
+                      `bit incorrect no value, ${opcode.toString(
+                        16
+                      )} mode:${mode}`
+                    );
+                  }
+                  const bit7 = (value & 0b1000_0000) >> 7;
+                  const bit6 = (value & 0b0100_0000) >> 6;
+
+                  this.statusReg.zero = (this.acc & value) === 0;
+                  this.statusReg.negative = bit7;
+                  this.statusReg.overflow = bit6;
+                  await this.emuCycle(4);
+                  break;
+                }
                 case 0b101: {
                   //ldy
                   const { value } = await this.getAddressing(mode);
