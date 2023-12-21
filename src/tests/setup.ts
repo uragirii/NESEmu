@@ -27,5 +27,8 @@ beforeAll(async () => {
       }
     })
   );
-  console.log(fs.readdirSync(`${__dirname}/${JSON_FOLDER}`));
+  console.log(
+    fs.readdirSync(`${__dirname}/${JSON_FOLDER}`),
+    `${__dirname}/${JSON_FOLDER}`
+  );
 });
