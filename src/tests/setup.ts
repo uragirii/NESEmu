@@ -16,6 +16,7 @@ const downloadTest = async (opcode: string) => {
 };
 
 beforeAll(async () => {
+  fs.mkdirSync(`${__dirname}/${JSON_FOLDER}`);
   await Promise.all(
     TESTABLE_OPCODES.map(async (opcode) => {
       if (!fs.existsSync(`${__dirname}/${JSON_FOLDER}/${opcode}.json`)) {
