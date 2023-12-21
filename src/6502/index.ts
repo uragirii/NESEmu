@@ -275,6 +275,16 @@ export class Mos6502 {
     return val;
   };
 
+  private adc(value: number) {
+    const total = this.acc + value + this.statusReg.carry;
+
+    this.statusReg.carry = total > 0xff;
+
+    this.statusReg.overflow = this.isOverflowInADC(this.acc, value, total);
+
+    this.acc = total;
+  }
+
   private executeOpcode = async (opcode: number) => {
     switch (opcode) {
       case 0x00: {
@@ -662,17 +672,7 @@ export class Mos6502 {
                     )} mode:${mode}`
                   );
                 }
-                const total = this.acc + value + this.statusReg.carry;
-
-                this.statusReg.carry = total > 0xff;
-
-                this.statusReg.overflow = this.isOverflowInADC(
-                  this.acc,
-                  value,
-                  total
-                );
-
-                this.acc = total;
+                this.adc(value);
                 await this.emuCycle(4);
 
                 break;
@@ -718,6 +718,22 @@ export class Mos6502 {
                 }
                 this.compare(this.acc, value);
                 await this.emuCycle(4);
+                break;
+              }
+              case 0b111: {
+                //sbc
+                // As per https://stackoverflow.com/a/29224684
+                const { value } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `sbc incorrect no value, ${opcode.toString(
+                      16
+                    )} mode:${mode}`
+                  );
+                }
+                this.adc(~value & 0xff);
+                await this.emuCycle(4);
+
                 break;
               }
               default: {
