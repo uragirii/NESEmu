@@ -868,6 +868,32 @@ export class Mos6502 {
                 await this.emuCycle(4);
                 break;
               }
+              case 0b110: {
+                //dec
+                const { address } = await this.getAddressing(mode);
+                if (address === null) {
+                  throw new Error(
+                    `dec incorrect no address, ${opcode.toString(16)}`
+                  );
+                }
+                this.memory[address]--;
+                this.statusReg.setAccFlags(this.memory[address]);
+                await this.emuCycle(3);
+                break;
+              }
+              case 0b111: {
+                //inc
+                const { address } = await this.getAddressing(mode);
+                if (address === null) {
+                  throw new Error(
+                    `dec incorrect no address, ${opcode.toString(16)}`
+                  );
+                }
+                this.memory[address]++;
+                this.statusReg.setAccFlags(this.memory[address]);
+                await this.emuCycle(3);
+                break;
+              }
               default: {
                 throwUnknown(opcode);
               }
