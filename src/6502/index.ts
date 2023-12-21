@@ -135,6 +135,45 @@ export class Mos6502 {
     return Promise.resolve(undefined);
   };
 
+  public nmi = async () => {
+    // #FFFa-b
+    const vectorAddress = this.make16Bytes(
+      this.memory[0xfffa],
+      this.memory[0xfffb]
+    );
+    await this.executeInteruppt(vectorAddress);
+  };
+
+  public irq = async () => {
+    // #FFFE
+    if (this.statusReg.interrupt) {
+      return;
+    }
+
+    const vectorAddress = this.make16Bytes(
+      this.memory[0xfffe],
+      this.memory[0xffff]
+    );
+    await this.executeInteruppt(vectorAddress);
+  };
+
+  private executeInteruppt = async (
+    vectorAddress: number,
+    setBreak = false
+  ) => {
+    const lb = this.programCounter & 0xff;
+    const hb = this.programCounter >> 8;
+    this.pushOnStack(hb);
+    this.pushOnStack(lb);
+    if (setBreak) {
+      this.statusReg.break = true;
+    }
+    this.pushOnStack(this.statusReg.status);
+    this.statusReg.interrupt = true;
+    this.jumpTo(vectorAddress);
+    await this.emuCycle(7);
+  };
+
   private fetch2Bytes = () => {
     const lb = this.fetchOpcode();
     const hb = this.fetchOpcode();
@@ -297,15 +336,7 @@ export class Mos6502 {
         // dummy fetch nothing happens
         const _signature = this.fetchOpcode();
 
-        const lb = this.programCounter & 0xff;
-        const hb = this.programCounter >> 8;
-        this.pushOnStack(hb);
-        this.pushOnStack(lb);
-        this.statusReg.break = true;
-        this.pushOnStack(this.statusReg.status);
-        this.statusReg.interrupt = true;
-        this.jumpTo(vectorAddress);
-        await this.emuCycle(7);
+        await this.executeInteruppt(vectorAddress, true);
         break;
       }
       case 0x08: {
