@@ -69,7 +69,7 @@ export class Mos6502 {
         `INSUFFICIENT_MEMORY: Received ROM with bytelength ${buffer.byteLength}. Max supported size ${MEMORY_SIZE}`
       );
     }
-    console.log("PC", startPos?.toString(16), "Offset", loadPos?.toString(16));
+    // console.log("PC", startPos?.toString(16), "Offset", loadPos?.toString(16));
     this.memory.set(new Uint8Array(buffer), loadPos);
 
     this.programCounter = startPos ?? 0;
@@ -730,6 +730,115 @@ export class Mos6502 {
             // group 2
             const mode = ADDRESSING_C_10[bbb];
             switch (aaa) {
+              case 0b000: {
+                //asl
+                const { value, address } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `asl incorrect no value, ${opcode.toString(16)}`
+                  );
+                }
+                const bit7 = (value & 0b1000_0000) >> 7;
+                this.statusReg.carry = bit7;
+                const shiftedValue = value << 1;
+                if (opcode === 0x0a) {
+                  // save in acc;
+                  this.acc = shiftedValue;
+                } else {
+                  if (address === null) {
+                    throw new Error(
+                      `asl incorrect no address, ${opcode.toString(16)}`
+                    );
+                  }
+
+                  this.memory[address] = shiftedValue;
+                  this.statusReg.setAccFlags(shiftedValue);
+                }
+                await this.emuCycle(2);
+                break;
+              }
+              case 0b001: {
+                // rol
+                const { value, address } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `rol incorrect no value, ${opcode.toString(16)}`
+                  );
+                }
+                const bit1 = this.statusReg.carry;
+                const bit7 = (value & 0b1000_0000) >> 7;
+                const shiftedValue = (value << 1) | bit1;
+                this.statusReg.carry = bit7;
+                if (opcode === 0x2a) {
+                  // save in acc;
+                  this.acc = shiftedValue;
+                } else {
+                  if (address === null) {
+                    throw new Error(
+                      `rol incorrect no address, ${opcode.toString(16)}`
+                    );
+                  }
+                  this.statusReg.setAccFlags(shiftedValue);
+                  this.memory[address] = shiftedValue;
+                }
+                await this.emuCycle(6);
+                break;
+              }
+              case 0b010: {
+                //lsr
+                const { value, address } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `lsr incorrect no value, ${opcode.toString(16)}`
+                  );
+                }
+                const bit1 = value & 0b1;
+                this.statusReg.carry = bit1;
+                const shiftedValue = value >> 1;
+                if (opcode === 0x4a) {
+                  // save in acc;
+                  this.acc = shiftedValue;
+                } else {
+                  if (address === null) {
+                    throw new Error(
+                      `lsr incorrect no address, ${opcode.toString(16)}`
+                    );
+                  }
+                  this.statusReg.setAccFlags(shiftedValue);
+
+                  this.memory[address] = shiftedValue;
+                }
+                await this.emuCycle(2);
+                break;
+              }
+              case 0b011: {
+                // ror
+                const { value, address } = await this.getAddressing(mode);
+                if (value === null) {
+                  throw new Error(
+                    `ror incorrect no value, ${opcode.toString(16)}`
+                  );
+                }
+                const bit7 = this.statusReg.carry;
+                const bit1 = value & 0b1;
+
+                const shiftedValue = (value >> 1) | (bit7 << 7);
+                this.statusReg.carry = bit1;
+                if (opcode === 0x6a) {
+                  // save in acc;
+                  this.acc = shiftedValue;
+                } else {
+                  if (address === null) {
+                    throw new Error(
+                      `ror incorrect no address, ${opcode.toString(16)}`
+                    );
+                  }
+                  this.statusReg.setAccFlags(shiftedValue);
+                  this.memory[address] = shiftedValue;
+                }
+                await this.emuCycle(6);
+                break;
+              }
               case 0b101: {
                 //ldx
 

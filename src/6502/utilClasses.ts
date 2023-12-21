@@ -1,3 +1,5 @@
+import { getSignedInt } from "./utilts";
+
 const ORDER = [
   "negative",
   "overflow",
@@ -85,17 +87,10 @@ export class StatusReg {
     this._carry = val ? 1 : 0;
   }
 
-  public setAccFlags(val: number) {
-    if (val === 0) {
-      this.zero = 1;
-    } else {
-      this.zero = 0;
-    }
-    if ((val & 0b1000_0000) === 0b1000_0000) {
-      this.negative = 1;
-    } else {
-      this.negative = 0;
-    }
+  public setAccFlags(_val: number) {
+    const val = _val & 0xff;
+    this.zero = val === 0;
+    this.negative = getSignedInt(val) < 0;
   }
 
   public checkBranchCondition(xx: number, y: number) {
