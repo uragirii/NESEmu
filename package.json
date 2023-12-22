@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noUnusedLocals false && vite build",
+    "build": "tsc --noUnusedLocals false && vite build --config vitest.config.ts",
     "preview": "vite preview",
     "test": "vitest --coverage",
     "deploy": "yarn test && yarn build"
