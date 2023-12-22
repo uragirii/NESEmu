@@ -3,7 +3,7 @@ import { TESTABLE_OPCODES } from "./constants";
 import { Mos6502 } from "../6502";
 import { MEMORY_SIZE } from "../6502/constants";
 import { getOpcodeTests } from "./utilts";
-import { testJson } from "./singletest";
+// import { testJson } from "./singletest";
 import { ChipState } from "./types";
 
 const toBin = (num: number) => num.toString(2).padStart(8, "0");

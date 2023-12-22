@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>6502 Emulator Playground</title>
+  </head>
+  <body>
+    <div class="content">
+      <h1>PPU Playground</h1>
+      <canvas
+        id="canvas"
+        style="height: 500px; width: 500px; background-color: black"
+      ></canvas>
+
+      <div id="app">
+        <input type="file" name="loadRom" id="loadRom" />
+      </div>
+    </div>
+    <script type="module" src="/src/ppu-investigation.ts"></script>
+  </body>
+</html>

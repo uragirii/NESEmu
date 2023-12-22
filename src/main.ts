@@ -1,5 +1,6 @@
 import { Mos6502 } from "./6502";
 import "./style.css";
+import { readFileAsBinary } from "./utils";
 
 // first lets make a disambelly
 const loadRomInput = document.getElementById("loadRom")!;
@@ -10,24 +11,6 @@ const memoryBox = document.getElementById("memory")!;
 const opcodeBox = document.getElementById("opcode")!;
 
 const toHex = (num: number) => num.toString(16).padStart(2, "0");
-
-const readFileAsBinary = (file: File): Promise<ArrayBuffer> => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-
-    fileReader.onload = (e) => {
-      const result = e.target?.result as ArrayBuffer;
-      resolve(result);
-    };
-
-    fileReader.onerror = (e) => {
-      console.log("error while reading file", e);
-      reject(e.target?.error);
-    };
-
-    fileReader.readAsArrayBuffer(file);
-  });
-};
 
 const updateUI = (opcode: number, mos: Mos6502) => {
   const pc = mos.programCounter - 1;
@@ -61,8 +44,16 @@ loadRomInput.onchange = async (e) => {
   if (!file) {
     return;
   }
-  const buffer = await readFileAsBinary(file);
-  const mos6502 = new Mos6502(buffer, 0x400);
+  const isNesFile = file.name.endsWith(".nes");
+  let buffer = await readFileAsBinary(file);
+  if (isNesFile) {
+    buffer = buffer.slice(0x10, 0x4010);
+  }
+  const mos6502 = new Mos6502(
+    buffer,
+    isNesFile ? 0xc000 : 0x400,
+    isNesFile ? 0x8000 : undefined
+  );
   try {
     await mos6502.startExecution(
       Infinity,
