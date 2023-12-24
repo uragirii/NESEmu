@@ -316,14 +316,8 @@ export class Mos6502 {
   };
 
   private jumpTo(address: number) {
-    // if (
-    //   address === this.programCounter ||
-    //   address === this.programCounter - 1
-    // ) {
-    //   console.log("infinte loop");
-    //   debugger;
-    //   throw new Error("Infinite Loop " + address);
-    // }
+    // check for infinte loop
+
     this.programCounter = address;
   }
 

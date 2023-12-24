@@ -10,9 +10,9 @@
     <div class="content">
       <h1>NES Emulator Playground</h1>
       <div class="box-container">
-        <div class="registers box">
+        <div class="box">
           <h2>CPU</h2>
-          <div>
+          <div class="box-content">
             <div class="code-container" id="main-reg">
               <code>A: --</code>
               <code>X: --</code>
@@ -31,11 +31,11 @@
               </div>
               <code id="opcode"> Opcode : -- </code>
             </div>
-          </div>
-          <div id="actions">
-            <button id="loadRom">Load ROM</button>
-            <button id="nmi">NMI</button>
-            <button id="halt">Pause</button>
+            <div id="actions">
+              <button id="loadRom">Load ROM</button>
+              <button id="nmi">NMI</button>
+              <button id="halt">Pause</button>
+            </div>
           </div>
         </div>
         <div class="box">

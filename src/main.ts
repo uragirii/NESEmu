@@ -53,6 +53,7 @@ fileUploader.onchange = async (e) => {
     return;
   }
   const buffer = new Uint8Array(await readFileAsBinary(file));
+  loadRomInput.innerText = `Loaded: ${file.name}`;
 
   const nes = new NES(buffer);
 
@@ -77,6 +78,7 @@ fileUploader.onchange = async (e) => {
       (opcode) => updateUI(opcode, nes.cpu)
     );
   } catch (error) {
+    halt.innerText = "Err";
     console.error(error);
     nes.cpu.dumpRegisters();
     nes.ppu.dumpRegisters();
