@@ -2,12 +2,7 @@ const RENDER_MAPS = new Map<string, Renderer>();
 
 export const TILE_SIZE = 8;
 
-const CHAR_TO_COLOR = {
-  A: "white",
-  B: "#ee1c25",
-  C: "#0065b3",
-  D: "#fed1b0",
-};
+const CHAR_TO_COLOR = ["white", "#ee1c25", "#0065b3", "#fed1b0"];
 
 type RendererOptions = {
   height: number;
@@ -45,16 +40,25 @@ export class Renderer {
     this.canvas.style.width = `${canvasWidth}px`;
   }
 
+  set onClick(eventFn: () => void) {
+    this.canvas.onclick = eventFn;
+  }
+
   public appendTo = (domElement: HTMLElement) => {
     domElement.appendChild(this.canvas);
   };
 
-  public drawTileAt = (tile: string[], offsetX: number, offsetY: number) => {
+  public drawTileAt = (
+    tile: string[],
+    offsetX: number,
+    offsetY: number,
+    palette?: string[]
+  ) => {
     tile.forEach((row, y) => {
       const pixels = row.split("");
       pixels.forEach((pixel, x) => {
         this.ctx.fillStyle =
-          CHAR_TO_COLOR[pixel as "A" | "B" | "C" | "D"] ?? "black";
+          (palette ?? CHAR_TO_COLOR)[parseInt(pixel)] ?? "black";
         this.ctx.fillRect(
           (offsetX * TILE_SIZE + x) * this.pixelMultiplier,
           (offsetY * TILE_SIZE + y) * this.pixelMultiplier,

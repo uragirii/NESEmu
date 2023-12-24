@@ -10,8 +10,11 @@ import {
   VRAM_INC_MASK,
   nameTableRendereCtn,
   paletteRendereCtn,
+  PALETTE_BLOCK_WIDTH,
+  PALETTE_BLOCK_HEIGHT,
+  NAMETABLE_ROWS,
+  NAMETABLE_COLUMS,
 } from "./constants";
-import { parseSprites } from "../ppu-investigation";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
 
 export class PPU {
@@ -45,11 +48,11 @@ export class PPU {
       throw "ppu can have 2000 bytes of chr rom";
     }
     this.memory.set(chrRom);
-    this.sprites = parseSprites(chrRom);
+    this.sprites = this.parseSprites(chrRom);
     this.nametableRenderers = new Array(4).fill(0).map((_, index) => {
       const renderer = createRenderer(`nametable-renderer-${index}`, {
-        height: 30 * TILE_SIZE,
-        width: 32 * TILE_SIZE,
+        height: NAMETABLE_ROWS * TILE_SIZE,
+        width: NAMETABLE_COLUMS * TILE_SIZE,
       });
 
       renderer.appendTo(nameTableRendereCtn);
@@ -57,14 +60,30 @@ export class PPU {
     });
     this.paletteRenderers = new Array(8).fill(0).map((_, index) => {
       const renderer = createRenderer(`palette-renderer-${index}`, {
-        height: 3 * TILE_SIZE,
-        width: (32 * TILE_SIZE) / 2, // just for symmetry purpose
+        height: PALETTE_BLOCK_HEIGHT,
+        width: PALETTE_BLOCK_WIDTH * 4, // just for symmetry purpose
       });
 
       renderer.appendTo(paletteRendereCtn);
+
+      renderer.onClick = () => {
+        this.drawNameTableWithPalette(index);
+      };
       return renderer;
     });
   }
+
+  private normalizeAddress = (_address: number) => {
+    let address = _address % 0x4000;
+    if (address >= 0x3000 && address < PALETTE_LOCATION) {
+      // address is mirrored
+      address -= 0x1000;
+    }
+    if (address > 0x3f1f) {
+      address -= 0x20;
+    }
+    return address;
+  };
 
   writePPUReg(address: number, value: number) {
     switch (address) {
@@ -97,7 +116,7 @@ export class PPU {
           this.dataAddress = value << 8;
           this.addressLatch = 1;
         } else {
-          this.dataAddress = (this.dataAddress + value) % 0x4000;
+          this.dataAddress = this.normalizeAddress(this.dataAddress + value);
         }
         return;
       }
@@ -115,7 +134,9 @@ export class PPU {
           this.debugPalette(this.dataAddress);
         }
 
-        this.dataAddress = (this.dataAddress + this.vramInc) % 0x4000;
+        this.dataAddress = this.normalizeAddress(
+          this.dataAddress + this.vramInc
+        );
 
         return;
       }
@@ -177,30 +198,35 @@ export class PPU {
     console.log(`Data bufer : ${this.dataBuffer.toString(16)}`);
   }
 
-  private getPalette(idx: number) {
+  private getPalette(idx: number): string[] {
     const startLocation = PALETTE_LOCATION + idx * 4;
     return new Array(4)
       .fill(0)
       .map((_, colorIdx) =>
         colorIdx === 0
-          ? this.memory[PALETTE_LOCATION]
-          : this.memory[startLocation + colorIdx]
+          ? PPU_COLORS[this.memory[PALETTE_LOCATION]]
+          : PPU_COLORS[this.memory[startLocation + colorIdx]]
       );
   }
 
   private getTile = (idx: number) => this.sprites[this.bgSpriteAddr + idx];
 
-  private debugNametable(address: number, spriteIdx: number) {
+  private debugNametable(
+    address: number,
+    spriteIdx: number,
+    paletteIdx?: number
+  ) {
     const nametableIdx = Math.floor(
       (address - NAMETABLE_LOCATION) / NAMETABLE_SIZE
     );
     const i = address - (NAMETABLE_LOCATION + NAMETABLE_SIZE * nametableIdx);
-    const x = i % 32;
-    const y = Math.floor(i / 32);
+    const x = i % NAMETABLE_COLUMS;
+    const y = Math.floor(i / NAMETABLE_COLUMS);
     this.nametableRenderers[nametableIdx].drawTileAt(
       this.getTile(spriteIdx),
       x,
-      y
+      y,
+      paletteIdx !== undefined ? this.getPalette(paletteIdx) : undefined
     );
   }
 
@@ -210,14 +236,58 @@ export class PPU {
 
     palette.forEach((color, idx) => {
       this.paletteRenderers[paletteIdx].drawRect(
-        idx * 4 * TILE_SIZE,
+        idx * PALETTE_BLOCK_WIDTH,
         0,
-        3 * TILE_SIZE,
-        4 * TILE_SIZE,
-        PPU_COLORS[color.toString(16).padStart(2, "0").toUpperCase()]
+        PALETTE_BLOCK_HEIGHT,
+        PALETTE_BLOCK_WIDTH,
+        color
       );
     });
   }
+
+  private drawNameTableWithPalette(idx: number) {
+    for (let index = 0; index < NAMETABLE_SIZE * 4; index++) {
+      this.debugNametable(
+        NAMETABLE_LOCATION + index,
+        this.memory[NAMETABLE_LOCATION + index],
+        idx
+      );
+    }
+  }
+
+  private getSprite = (high: Uint8Array, low: Uint8Array) => {
+    const highStr = Array.from(high).map((val) =>
+      val.toString(2).padStart(8, "0")
+    );
+    const lowStr = Array.from(low).map((val) =>
+      val.toString(2).padStart(8, "0")
+    );
+    const sprite: string[] = [];
+    for (let y = 0; y < 8; y++) {
+      const line: number[] = [];
+      for (let x = 0; x < 8; x++) {
+        const hb = highStr[y][x];
+        const lb = lowStr[y][x];
+        const bit = hb + lb;
+        line.push(parseInt(bit, 2));
+      }
+      sprite.push(line.join(""));
+    }
+
+    return sprite;
+  };
+
+  private parseSprites = (rom: Uint8Array) => {
+    const sprites = [];
+
+    for (let tileIdx = 0; tileIdx < 512; tileIdx++) {
+      const tileH = rom.slice(tileIdx * 16, tileIdx * 16 + 8);
+      const tileL = rom.slice(tileIdx * 16 + 8, tileIdx * 16 + 16);
+
+      sprites.push(this.getSprite(tileH, tileL));
+    }
+    return sprites;
+  };
 
   private setPPUCntrl(value: number) {
     const nameTable = value & NAME_TABLE_MASK;
