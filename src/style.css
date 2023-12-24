@@ -146,6 +146,13 @@ canvas {
   max-width: 550px;
   overflow-x: scroll;
 }
+#palette-ctn {
+  display: flex;
+  gap: 0.5em;
+  max-width: 550px;
+  overflow-x: scroll;
+  margin-top: 1em;
+}
 
 #actions {
   margin-top: 1em;
