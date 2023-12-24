@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NES Emulator Playground</title>
+    <title>6502 Emulator Playground</title>
   </head>
   <body>
     <div class="content">
@@ -36,16 +36,14 @@
           </div>
         </div>
       </div>
-      <div>
-        <canvas id="namespace" height="1024" width="1024"></canvas>
-      </div>
 
       <div id="app">
         <input type="file" name="loadRom" id="loadRom" />
         <button id="nmi">NMI</button>
-        <button id="halt">Pause</button>
+        <button id="halt">Halted</button>
       </div>
     </div>
+    <!-- TODO: make only cpu debug -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

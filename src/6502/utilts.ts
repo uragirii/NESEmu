@@ -20,3 +20,9 @@ export const getSignedInt = (val: number) => {
   const withoutMsb = eightBit & 0b0111_1111;
   return msbValue + withoutMsb;
 };
+
+export const delayHalt = (ms: number) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};

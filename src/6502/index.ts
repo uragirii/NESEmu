@@ -1,17 +1,17 @@
+import { createCPUMemory } from "../CPUMemory";
 import {
   ADDRESSING_C_01,
   ADDRESSING_C_10,
   CYCLES_PER_SECOND,
   DEBUG_LOC,
-  MEMORY_SIZE,
 } from "./constants";
 import { throwUnknown } from "./errors";
 import { AddressingMode } from "./types";
 import { StatusReg } from "./utilClasses";
-import { getSignedInt } from "./utilts";
+import { delayHalt, getSignedInt } from "./utilts";
 
 export class Mos6502 {
-  memory = new Uint8Array(MEMORY_SIZE);
+  memory: Uint8Array;
 
   private _programCounter = new Uint16Array([0]);
   get programCounter() {
@@ -61,18 +61,30 @@ export class Mos6502 {
     this._stackPointer[0] = val;
   }
 
+  private isHalted = false;
+
   private _cycles = 0;
 
-  constructor(buffer: ArrayBuffer, startPos?: number, loadPos?: number) {
-    if (buffer.byteLength > MEMORY_SIZE) {
-      throw new Error(
-        `INSUFFICIENT_MEMORY: Received ROM with bytelength ${buffer.byteLength}. Max supported size ${MEMORY_SIZE}`
-      );
-    }
-    // console.log("PC", startPos?.toString(16), "Offset", loadPos?.toString(16));
-    this.memory.set(new Uint8Array(buffer), loadPos);
+  // Only available for cpu testing
+  // constructor(buffer: ArrayBuffer, startPos?: number, loadPos?: number) {
+  //   if (buffer.byteLength > MEMORY_SIZE) {
+  //     throw new Error(
+  //       `INSUFFICIENT_MEMORY: Received ROM with bytelength ${buffer.byteLength}. Max supported size ${MEMORY_SIZE}`
+  //     );
+  //   }
+  //   // console.log("PC", startPos?.toString(16), "Offset", loadPos?.toString(16));
+  //   this.memory.set(new Uint8Array(buffer), loadPos);
 
-    this.programCounter = startPos ?? 0;
+  //   this.programCounter = startPos ?? 0;
+  // }
+
+  // Actual constructor for NES Files
+  constructor(memory: Uint8Array) {
+    // // This assums NES style and loads 4KB of PGM-ROM
+    // if (buffer.length > 0x4000) {
+    //   throw "NES supported 4KB PGM-ROM";
+    // }
+    this.memory = memory;
   }
 
   private fetchOpcode = () => {
@@ -88,6 +100,11 @@ export class Mos6502 {
     while (this.programCounter < this.memory.length && remainingIns > 0) {
       if (this.programCounter === DEBUG_LOC) {
         debugger;
+      }
+      if (this.isHalted) {
+        // Delay for 500ms and make the thread beathe
+        await delayHalt(500);
+        continue;
       }
 
       const opcode = this.fetchOpcode();
@@ -155,6 +172,24 @@ export class Mos6502 {
       this.memory[0xffff]
     );
     await this.executeInteruppt(vectorAddress);
+  };
+
+  public reset = async () => {
+    const vectorAddress = this.make16Bytes(
+      this.memory[0xfffc],
+      this.memory[0xfffd]
+    );
+    this.stackPointer = 0x1fd;
+    this.statusReg.status = 0;
+    this.acc = 0;
+    this.x = 0;
+    this.y = 0;
+    this._cycles = 7;
+    this.jumpTo(vectorAddress);
+  };
+
+  public toggleHalt = () => {
+    this.isHalted = !this.isHalted;
   };
 
   private executeInteruppt = async (

@@ -1,9 +1,12 @@
 import { Mos6502 } from "./6502";
+import { NES } from "./NES";
 import "./style.css";
 import { readFileAsBinary } from "./utils";
 
 // first lets make a disambelly
 const loadRomInput = document.getElementById("loadRom")!;
+const nmi = document.getElementById("nmi")! as HTMLButtonElement;
+const halt = document.getElementById("halt")! as HTMLButtonElement;
 
 const mainReg = document.getElementById("main-reg")!;
 const otherReg = document.getElementById("other-reg")!;
@@ -44,24 +47,33 @@ loadRomInput.onchange = async (e) => {
   if (!file) {
     return;
   }
-  const isNesFile = file.name.endsWith(".nes");
-  let buffer = await readFileAsBinary(file);
-  if (isNesFile) {
-    buffer = buffer.slice(0x10, 0x4010);
-  }
-  const mos6502 = new Mos6502(
-    buffer,
-    isNesFile ? 0xc000 : 0x400,
-    isNesFile ? 0x8000 : undefined
-  );
+  const buffer = new Uint8Array(await readFileAsBinary(file));
+
+  const nes = new NES(buffer);
+
+  nmi.onclick = () => {
+    console.log("Triggering NMI");
+    nes.cpu.nmi();
+  };
+
+  let halted = false;
+
+  halt.onclick = () => {
+    halted = !halted;
+    nes.cpu.toggleHalt();
+    halt.innerText = halted ? "Play" : "Pause";
+  };
+
   try {
-    await mos6502.startExecution(
+    // nes.cpu.programCounter = 0xc000;
+    await nes.cpu.startExecution(
       Infinity,
-      (opcode) => updateUI(opcode, mos6502),
-      (opcode) => updateUI(opcode, mos6502)
+      (opcode) => updateUI(opcode, nes.cpu),
+      (opcode) => updateUI(opcode, nes.cpu)
     );
   } catch (error) {
     console.error(error);
-    mos6502.dumpRegisters();
+    nes.cpu.dumpRegisters();
+    nes.ppu.dumpRegisters();
   }
 };
