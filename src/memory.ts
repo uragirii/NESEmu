@@ -1,4 +1,4 @@
-const MEMORY_SIZE = 2 ** 16;
+const CPUMEMORY_SIZE = 2 ** 16;
 
 const MAX_ROM_SIZE = 0x4000;
 
@@ -33,7 +33,7 @@ export const createCPUMemory = (
   ppuRegRead: (address: number) => number,
   ppuRegWrite: (address: number, value: number) => void
 ) => {
-  const memory = new Uint8Array(MEMORY_SIZE);
+  const memory = new Uint8Array(CPUMEMORY_SIZE);
 
   if (prgRom.byteLength > MAX_ROM_SIZE) {
     throw "only 4kb rom supported";
@@ -78,7 +78,7 @@ export const createCPUMemory = (
 
       const address = parseInt(prop, 10);
       if (isNaN(address)) {
-        throw `address is NaN ${prop}`;
+        return Reflect.get(target, prop);
       }
 
       const parsedAddress = getParsedAddress(address);
@@ -87,9 +87,9 @@ export const createCPUMemory = (
         // this is PPU space
         const ppuReg = ppuRegRead(parsedAddress);
         console.log(
-          `R 0x${TEMP_RECORD[parsedAddress.toString(16)]} 0x${ppuReg.toString(
-            16
-          )}`
+          `R 0x${
+            TEMP_RECORD[parsedAddress.toString(16) as "2000"]
+          } 0x${ppuReg.toString(16)}`
         );
         return ppuReg;
       }
@@ -111,9 +111,9 @@ export const createCPUMemory = (
 
       if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
         console.log(
-          `W 0x${TEMP_RECORD[parsedAddress.toString(16)]} 0x${newValue.toString(
-            16
-          )} ${prop}`
+          `W 0x${
+            TEMP_RECORD[parsedAddress.toString(16) as "2000"]
+          } 0x${newValue.toString(16)} ${prop}`
         );
         ppuRegWrite(parsedAddress, newValue);
         return true;

@@ -3,6 +3,9 @@ import { NES } from "./NES";
 import "./style.css";
 import { readFileAsBinary } from "./utils";
 
+const fileUploader = document.createElement("input");
+fileUploader.type = "file";
+
 // first lets make a disambelly
 const loadRomInput = document.getElementById("loadRom")!;
 const nmi = document.getElementById("nmi")! as HTMLButtonElement;
@@ -42,7 +45,9 @@ const updateUI = (opcode: number, mos: Mos6502) => {
   opcodeBox.innerText = `Opcode : 0x${opcode.toString(16).padStart(2, "0")}`;
 };
 
-loadRomInput.onchange = async (e) => {
+loadRomInput.onclick = () => fileUploader.click();
+
+fileUploader.onchange = async (e) => {
   const file: File | undefined = (e.target as HTMLInputElement)?.files?.[0];
   if (!file) {
     return;

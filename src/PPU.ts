@@ -1,17 +1,5 @@
-import { parseSprites, renderTile } from "./ppu-investigation";
-
-const canvas = document.getElementById("namespace")! as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
-
-const PIXEL_MULTIPLIER = 4;
-
-const VALUE_COLOR_MAP: Record<number, string> = {
-  0: "black",
-};
-
-const getRandomColor = () => {
-  return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-};
+import { parseSprites } from "./ppu-investigation";
+import { Renderer, TILE_SIZE, createRenderer } from "./renderer";
 
 const NAME_TABLE_MASK = 0b11;
 const VRAM_INC_MASK = 0b100;
@@ -19,6 +7,8 @@ const VRAM_INC_MASK = 0b100;
 const SPRITE_MASK = 0b100;
 const BG_SPRITE_MASK = 0b1000;
 const NMI_ENABLE_MASK = 0b1000_0000;
+
+const nameTableRendereCtn = document.getElementById("nametable-ctn")!;
 
 export class PPU {
   private nmiEnable = false;
@@ -43,18 +33,23 @@ export class PPU {
   private bgSpriteAddr = 0x0000;
   private spriteAddr = 0x0000;
 
+  private nametableRenderers: Renderer[] = [];
+
   constructor(chrRom: Uint8Array) {
     if (chrRom.byteLength > 0x2000) {
       throw "ppu can have 2000 bytes of chr rom";
     }
     this.memory.set(chrRom);
     this.sprites = parseSprites(chrRom);
-    const canvasHeight = 32 * 8 * PIXEL_MULTIPLIER;
-    const canvasWidth = 30 * 8 * PIXEL_MULTIPLIER;
-    canvas.height = canvasHeight;
-    canvas.width = canvasWidth;
-    canvas.style.height = `${canvasHeight}px`;
-    canvas.style.width = `${canvasWidth}px`;
+    this.nametableRenderers = new Array(4).fill(0).map((_, index) => {
+      const renderer = createRenderer(`nametable-renderer-${index}`, {
+        height: 30 * TILE_SIZE,
+        width: 32 * TILE_SIZE,
+      });
+
+      renderer.appendTo(nameTableRendereCtn);
+      return renderer;
+    });
   }
 
   writePPUReg(address: number, value: number) {
@@ -97,6 +92,9 @@ export class PPU {
       case 0x2007: {
         // data
         this.memory[this.dataAddress] = value;
+        if (this.dataAddress >= 0x2000 && this.dataAddress <= 0x2fff) {
+          this.debugNametable(this.dataAddress, value);
+        }
         console.log(
           `W 0x${this.dataAddress.toString(16)} 0x${value.toString(16)}`
         );
@@ -163,41 +161,18 @@ export class PPU {
     console.log(`Data bufer : ${this.dataBuffer.toString(16)}`);
   }
 
-  drawBackground() {
-    // const start = performance.now();
-    // // 0x2000 -> 0x23bf (32 --- and 30 |)
-    ctx.clearRect(0, 0, canvas.height, canvas.width);
-    // debugger;
-    for (let i = 0; i < 32 * 30; ++i) {
-      const x = i % 32;
-      const y = Math.floor(i / 32);
-      const spriteIdx = this.memory[0x2000 + i];
-      // this.drawSpriteAt(x, y, spriteIdx);
-      // ctx.font = "10pt serif";
+  private getTile = (idx: number) => this.sprites[this.bgSpriteAddr + idx];
 
-      // if (!VALUE_COLOR_MAP[spriteIdx]) {
-      //   VALUE_COLOR_MAP[spriteIdx] = getRandomColor();
-      // }
-
-      renderTile(this.sprites[this.bgSpriteAddr + spriteIdx], x, y);
-
-      // ctx.fillStyle = VALUE_COLOR_MAP[spriteIdx];
-      // ctx.strokeStyle = VALUE_COLOR_MAP[spriteIdx];
-      // ctx.fillRect(
-      //   x * PIXEL_MULTIPLIER * PIXEL_MULTIPLIER,
-      //   (y - 1) * PIXEL_MULTIPLIER * PIXEL_MULTIPLIER,
-      //   PIXEL_MULTIPLIER * PIXEL_MULTIPLIER,
-      //   PIXEL_MULTIPLIER * PIXEL_MULTIPLIER
-      // );
-      // ctx.fillText(
-      //   spriteIdx.toString(16).padStart(2, "0"),
-      //   x * PIXEL_MULTIPLIER * PIXEL_MULTIPLIER,
-      //   y * PIXEL_MULTIPLIER * PIXEL_MULTIPLIER,
-      //   PIXEL_MULTIPLIER * PIXEL_MULTIPLIER
-      // );
-    }
-    // const end = performance.now();
-    // console.log(`Draw complete in ${end - start}`);
+  private debugNametable(address: number, spriteIdx: number) {
+    const nametableIdx = Math.floor((address - 0x2000) / 0x400);
+    const i = address - (0x2000 + 0x400 * nametableIdx);
+    const x = i % 32;
+    const y = Math.floor(i / 32);
+    this.nametableRenderers[nametableIdx].drawTileAt(
+      this.getTile(spriteIdx),
+      x,
+      y
+    );
   }
 
   private setPPUCntrl(value: number) {

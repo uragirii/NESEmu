@@ -1,4 +1,3 @@
-import { createCPUMemory } from "../CPUMemory";
 import {
   ADDRESSING_C_01,
   ADDRESSING_C_10,
