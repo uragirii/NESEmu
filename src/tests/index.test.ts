@@ -14,7 +14,7 @@ const testBuffer = async (
   initial: ChipState
 ) => {
   initial.ram.forEach(([loc, val]) => (buffer[loc] = val));
-  const mos = new Mos6502(buffer, initial.pc);
+  const mos = new Mos6502(buffer);
 
   // initial setup
   mos.acc = initial.a;
@@ -59,7 +59,8 @@ describe.each(TESTABLE_OPCODES)(`tests %s`, async (opcode) => {
 
   test.each(opcodeTests)("[%#] $name", async ({ initial, final }) => {
     initial.ram.forEach(([loc, val]) => (buffer[loc] = val));
-    const mos = new Mos6502(buffer, initial.pc);
+    // TODO: fix tests
+    const mos = new Mos6502(buffer);
 
     // initial setup
     mos.acc = initial.a;
