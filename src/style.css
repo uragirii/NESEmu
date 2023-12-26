@@ -142,9 +142,8 @@ canvas {
 
 #nametable-ctn {
   display: flex;
-  gap: 1em;
   max-width: 550px;
-  overflow-x: scroll;
+  flex-wrap: wrap;
 }
 #palette-ctn {
   display: flex;
