@@ -23,4 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 src/tests/testJsons/
+src/tests/nestest.log.txt
+src/tests/nestest.nes
 coverage/

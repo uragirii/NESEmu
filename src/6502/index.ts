@@ -179,11 +179,12 @@ export class Mos6502 {
       this.memory[0xfffd]
     );
     this.stackPointer = 0x1fd;
-    this.statusReg.status = 0;
     this.acc = 0;
     this.x = 0;
     this.y = 0;
     this._cycles = 7;
+    this.statusReg.status = 0;
+    this.statusReg.interrupt = 1;
     this.jumpTo(vectorAddress);
   };
 
@@ -382,7 +383,9 @@ export class Mos6502 {
       }
       case 0x28: {
         // plp
+        const prevBrk = this.statusReg.break;
         this.statusReg.status = this.pullFromStack();
+        this.statusReg.break = prevBrk;
         await this.emuCycle(4);
         break;
       }
