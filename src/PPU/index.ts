@@ -25,7 +25,7 @@ export class PPU {
   private bgAddr = 0;
   private spriteSize = 0;
 
-  private inVBlank = true;
+  private inVBlank = 0;
 
   private addressLatch = 0x00;
   private dataAddress = 0x0000;
@@ -117,6 +117,7 @@ export class PPU {
           this.addressLatch = 1;
         } else {
           this.dataAddress = this.normalizeAddress(this.dataAddress + value);
+          this.addressLatch = 0;
         }
         return;
       }
@@ -160,9 +161,9 @@ export class PPU {
 
       case 0x2002: {
         this.addressLatch = 0x00;
-        if (this.inVBlank) {
-          // this.inVBlank = false;
-          return 0xe0;
+        if (this.inVBlank < 2) {
+          this.inVBlank++;
+          return 0x80;
         } else {
           return 0x00;
         }
@@ -291,13 +292,20 @@ export class PPU {
 
   private setPPUCntrl(value: number) {
     const nameTable = value & NAME_TABLE_MASK;
-    this.baseNametable = NAMETABLE_LOCATION + (nameTable - 1) * NAMETABLE_SIZE;
+    this.baseNametable = NAMETABLE_LOCATION + nameTable * NAMETABLE_SIZE;
 
     this.vramInc = (value & VRAM_INC_MASK) === VRAM_INC_MASK ? 32 : 1;
     this.spriteAddr = (value & SPRITE_MASK) === SPRITE_MASK ? 0x1000 : 0x0000;
-    this.bgSpriteAddr = (value & BG_SPRITE_MASK) === BG_SPRITE_MASK ? 0 : 256;
+    this.bgSpriteAddr = (value & BG_SPRITE_MASK) === BG_SPRITE_MASK ? 256 : 0;
 
     // todo:read sprite pattern
     this.nmiEnable = (value & NMI_ENABLE_MASK) === NMI_ENABLE_MASK;
+
+    console.log("setPPUCntrl ", {
+      nameTable,
+      baseNameTable: this.baseNametable,
+      bgSpriteAddr: this.bgSpriteAddr,
+      nmiEnable: this.nmiEnable,
+    });
   }
 }
