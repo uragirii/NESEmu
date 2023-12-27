@@ -14,6 +14,8 @@ import {
   PALETTE_BLOCK_HEIGHT,
   NAMETABLE_ROWS,
   NAMETABLE_COLUMS,
+  ATTRIBUTE_TABLE_SIZE,
+  screenRenderedCtn,
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
 
@@ -21,8 +23,6 @@ export class PPU {
   private nmiEnable = false;
   private masterSlave = true;
 
-  private spriteLoc = 0;
-  private bgAddr = 0;
   private spriteSize = 0;
 
   private inVBlank = 0;
@@ -42,6 +42,8 @@ export class PPU {
 
   private nametableRenderers: Renderer[] = [];
   private paletteRenderers: Renderer[] = [];
+
+  private screen: Renderer;
 
   constructor(chrRom: Uint8Array) {
     if (chrRom.byteLength > 0x2000) {
@@ -71,6 +73,13 @@ export class PPU {
       };
       return renderer;
     });
+    this.screen = createRenderer("screen", {
+      height: 240,
+      width: 256,
+      pixelMultiplier: 2,
+    });
+
+    this.screen.appendTo(screenRenderedCtn);
   }
 
   private normalizeAddress = (_address: number) => {
@@ -199,6 +208,34 @@ export class PPU {
     console.log(`Data bufer : ${this.dataBuffer.toString(16)}`);
   }
 
+  updateScreen() {
+    const nametable = this.memory.slice(
+      this.baseNametable,
+      this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE
+    );
+    const attributeTable = this.memory.slice(
+      this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE,
+      this.baseNametable + NAMETABLE_SIZE
+    );
+
+    for (let i = 0; i < nametable.length; ++i) {
+      const x = i % NAMETABLE_COLUMS;
+      const y = Math.floor(i / NAMETABLE_COLUMS);
+
+      const attributeIdx = Math.floor(x / 4) + 8 * Math.floor(y / 4);
+      const attribute = attributeTable[attributeIdx];
+
+      const lbAtr = x % 4 >> 1;
+      const hbAttr = y % 4 >> 1;
+      const quad = hbAttr << (1 + lbAtr);
+
+      const paletteIdx = (attribute >> quad) & 0b11;
+      const palette = this.getPalette(paletteIdx);
+
+      this.screen.drawTileAt(this.getTile(nametable[i]), x, y, palette);
+    }
+  }
+
   private getPalette(idx: number): string[] {
     const startLocation = PALETTE_LOCATION + idx * 4;
     return new Array(4)
@@ -223,6 +260,10 @@ export class PPU {
     const i = address - (NAMETABLE_LOCATION + NAMETABLE_SIZE * nametableIdx);
     const x = i % NAMETABLE_COLUMS;
     const y = Math.floor(i / NAMETABLE_COLUMS);
+    if (y > NAMETABLE_ROWS) {
+      // This is attribute table for nametable
+      return;
+    }
     this.nametableRenderers[nametableIdx].drawTileAt(
       this.getTile(spriteIdx),
       x,
@@ -247,6 +288,7 @@ export class PPU {
   }
 
   private drawNameTableWithPalette(idx: number) {
+    const start = performance.now();
     for (let index = 0; index < NAMETABLE_SIZE * 4; index++) {
       this.debugNametable(
         NAMETABLE_LOCATION + index,
@@ -254,6 +296,8 @@ export class PPU {
         idx
       );
     }
+    const end = performance.now();
+    console.log("Draw Nametable", end - start);
   }
 
   private getSprite = (high: Uint8Array, low: Uint8Array) => {
@@ -296,7 +340,7 @@ export class PPU {
 
     this.vramInc = (value & VRAM_INC_MASK) === VRAM_INC_MASK ? 32 : 1;
     this.spriteAddr = (value & SPRITE_MASK) === SPRITE_MASK ? 0x1000 : 0x0000;
-    this.bgSpriteAddr = (value & BG_SPRITE_MASK) === BG_SPRITE_MASK ? 256 : 0;
+    this.bgSpriteAddr = (value & BG_SPRITE_MASK) !== BG_SPRITE_MASK ? 256 : 0;
 
     // todo:read sprite pattern
     this.nmiEnable = (value & NMI_ENABLE_MASK) === NMI_ENABLE_MASK;

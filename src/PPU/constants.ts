@@ -9,6 +9,9 @@ export const NMI_ENABLE_MASK = 0b1000_0000;
 
 export const PALETTE_LOCATION = 0x3f00;
 export const NAMETABLE_LOCATION = 0x2000;
+/**
+ * This size includes the attribute table also. Actual size is NOT 0x400 but 0x3c0
+ */
 export const NAMETABLE_SIZE = 0x400;
 
 export const PALETTE_BLOCK_WIDTH = 4 * TILE_SIZE;
@@ -16,9 +19,12 @@ export const PALETTE_BLOCK_HEIGHT = 3 * TILE_SIZE;
 
 export const NAMETABLE_ROWS = 30;
 export const NAMETABLE_COLUMS = 32;
+export const ATTRIBUTE_TABLE_SIZE =
+  NAMETABLE_SIZE - NAMETABLE_ROWS * NAMETABLE_COLUMS;
 
 export const nameTableRendereCtn = document.getElementById("nametable-ctn")!;
 export const paletteRendereCtn = document.getElementById("palette-ctn")!;
+export const screenRenderedCtn = document.getElementById("screen-ctn")!;
 
 export const PPU_COLORS = [
   "#626262",

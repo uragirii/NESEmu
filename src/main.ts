@@ -10,6 +10,7 @@ fileUploader.type = "file";
 const loadRomInput = document.getElementById("loadRom")!;
 const nmi = document.getElementById("nmi")! as HTMLButtonElement;
 const halt = document.getElementById("halt")! as HTMLButtonElement;
+const drawBtn = document.getElementById("draw")! as HTMLButtonElement;
 
 const mainReg = document.getElementById("main-reg")!;
 const otherReg = document.getElementById("other-reg")!;
@@ -68,6 +69,14 @@ fileUploader.onchange = async (e) => {
     halted = !halted;
     nes.cpu.toggleHalt();
     halt.innerText = halted ? "Play" : "Pause";
+  };
+
+  drawBtn.onclick = () => {
+    const start = performance.now();
+    nes.ppu.updateScreen();
+    const end = performance.now();
+    console.log("Screen draw", end - start);
+    nes.cpu.nmi();
   };
 
   try {
