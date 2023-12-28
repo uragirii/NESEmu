@@ -282,10 +282,7 @@ export class PPU {
       }
       this.scanline = (this.scanline + 1) % 262;
       this.cycles %= 341;
-      const scanStart = performance.now();
       this.drawScanline();
-      const scanEnd = performance.now();
-      console.log("SCAN DRAW", scanEnd - scanStart);
       if (this.scanline === 241 && this.nmiEnable) {
         console.log("PPU TRIGGER NMI");
         cpuNMI();

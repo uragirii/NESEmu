@@ -72,10 +72,7 @@ fileUploader.onchange = async (e) => {
   };
 
   drawBtn.onclick = () => {
-    const start = performance.now();
     nes.ppu.updateScreen();
-    const end = performance.now();
-    console.log("Screen draw", end - start);
     nes.cpu.nmi();
   };
 

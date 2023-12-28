@@ -1,3 +1,5 @@
+import { Controller } from "./controller";
+
 const CPUMEMORY_SIZE = 2 ** 16;
 
 const MAX_ROM_SIZE = 0x4000;
@@ -5,13 +7,15 @@ const MAX_ROM_SIZE = 0x4000;
 const TEMP_RECORD = {
   2000: "PPUCTRL",
   2001: "PPUMARK",
-  2002: "PPUSCROLL",
+  2002: "PPUSTATUS",
   2003: "OAMADDR",
   2004: "OAMDATA",
   2005: "PPUSCRILL",
   2006: "PPUADDR",
   2007: "PPUDATA",
 };
+
+const controller1 = new Controller();
 
 /**
  *| Address | Size | Description|
@@ -83,14 +87,22 @@ export const createCPUMemory = (
 
       const parsedAddress = getParsedAddress(address);
 
+      if (parsedAddress === 0x4016) {
+        const msb = controller1.buffer >> 7;
+
+        controller1.buffer = (controller1.buffer << 1) & 0xff;
+        // mimic open bus behaviour
+        return msb | 0x40;
+      }
+
       if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
         // this is PPU space
         const ppuReg = ppuRegRead(parsedAddress);
-        console.log(
-          `R 0x${
-            TEMP_RECORD[parsedAddress.toString(16) as "2000"]
-          } 0x${ppuReg.toString(16)}`
-        );
+        // console.log(
+        //   `R 0x${
+        //     TEMP_RECORD[parsedAddress.toString(16) as "2000"]
+        //   } 0x${ppuReg.toString(16)}`
+        // );
         return ppuReg;
       }
 
@@ -109,12 +121,29 @@ export const createCPUMemory = (
 
       const parsedAddress = getParsedAddress(address);
 
+      if (parsedAddress === 0x4016) {
+        // controllerBuffer = DOWN;
+        // console.log(
+        //   `W CONTROLLER 0x${newValue.toString(16)} 0b${newValue.toString(2)}`,
+        //   controllerMode,
+        //   controllerBuffer
+        // );
+        if (newValue & 0b1) {
+          controller1.startListening();
+        } else {
+          controller1.stopListening();
+        }
+
+        return true;
+      }
+
       if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
-        console.log(
-          `W 0x${
-            TEMP_RECORD[parsedAddress.toString(16) as "2000"]
-          } 0x${newValue.toString(16)} ${prop}`
-        );
+        // console.log(
+        //   `W 0x${
+        //     TEMP_RECORD[parsedAddress.toString(16) as "2000"]
+        //   } 0x${newValue.toString(16)} ${prop}`
+        // );
+
         ppuRegWrite(parsedAddress, newValue);
         return true;
       }
