@@ -18,6 +18,7 @@ import {
   screenRenderedCtn,
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
+import { delayHalt } from "../6502/utilts";
 
 export class PPU {
   private nmiEnable = false;
@@ -25,7 +26,7 @@ export class PPU {
 
   private spriteSize = 0;
 
-  private inVBlank = 0;
+  private inVBlank = false;
 
   private addressLatch = 0x00;
   private dataAddress = 0x0000;
@@ -44,6 +45,18 @@ export class PPU {
   private paletteRenderers: Renderer[] = [];
 
   private screen: Renderer;
+
+  private scanline = 0;
+  private pixel = 0;
+  private cycles = 0;
+
+  private selectedNametable = new Uint8Array(
+    NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE
+  );
+  private attributeTable = new Uint8Array(ATTRIBUTE_TABLE_SIZE);
+  private frameBgPalette: string[][] = [];
+
+  private frameStart: number | null = null;
 
   constructor(chrRom: Uint8Array) {
     if (chrRom.byteLength > 0x2000) {
@@ -135,14 +148,14 @@ export class PPU {
       case 0x2007: {
         // data
         this.memory[this.dataAddress] = value;
-        if (
-          this.dataAddress >= NAMETABLE_LOCATION &&
-          this.dataAddress < PALETTE_LOCATION
-        ) {
-          this.debugNametable(this.dataAddress, value);
-        } else if (this.dataAddress >= PALETTE_LOCATION) {
-          this.debugPalette(this.dataAddress);
-        }
+        // if (
+        //   this.dataAddress >= NAMETABLE_LOCATION &&
+        //   this.dataAddress < PALETTE_LOCATION
+        // ) {
+        //   this.debugNametable(this.dataAddress, value);
+        // } else if (this.dataAddress >= PALETTE_LOCATION) {
+        //   this.debugPalette(this.dataAddress);
+        // }
 
         this.dataAddress = this.normalizeAddress(
           this.dataAddress + this.vramInc
@@ -170,8 +183,7 @@ export class PPU {
 
       case 0x2002: {
         this.addressLatch = 0x00;
-        if (this.inVBlank < 2) {
-          this.inVBlank++;
+        if (this.inVBlank) {
           return 0x80;
         } else {
           return 0x00;
@@ -233,6 +245,89 @@ export class PPU {
       const palette = this.getPalette(paletteIdx);
 
       this.screen.drawTileAt(this.getTile(nametable[i]), x, y, palette);
+    }
+  }
+
+  async runFor(cycles: number, cpuNMI: () => void) {
+    // This is not a cycle accurate PPU, accessing memory again n again is troublesome
+    // I will draw the scanline as soon as possible and do no op for rest of the cycles
+    // Each scanline is 341 cycles.
+    this.cycles += cycles;
+    if (this.cycles > 341) {
+      if (this.scanline === 0) {
+        if (this.frameStart) {
+          const end = performance.now();
+          const frameTime = end - this.frameStart;
+          console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
+        }
+        console.log("NEW FRAME");
+        await delayHalt(50);
+        this.frameStart = performance.now();
+        // Fetch nametable and attirbute tables
+        this.selectedNametable.set(
+          this.memory.slice(
+            this.baseNametable,
+            this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE
+          )
+        );
+        this.attributeTable.set(
+          this.memory.slice(
+            this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE,
+            this.baseNametable + NAMETABLE_SIZE
+          )
+        );
+        this.frameBgPalette = new Array(4)
+          .fill(0)
+          .map((_, idx) => this.getPalette(idx));
+      }
+      this.scanline = (this.scanline + 1) % 262;
+      this.cycles %= 341;
+      const scanStart = performance.now();
+      this.drawScanline();
+      const scanEnd = performance.now();
+      console.log("SCAN DRAW", scanEnd - scanStart);
+      if (this.scanline === 241 && this.nmiEnable) {
+        console.log("PPU TRIGGER NMI");
+        cpuNMI();
+      }
+    }
+  }
+
+  private drawScanline() {
+    const y = Math.floor(this.scanline / TILE_SIZE);
+    if (this.scanline < 239) {
+      const attrY = 8 * Math.floor(y / 4);
+      const nametableY = NAMETABLE_COLUMS * y;
+      for (let x = 0; x < NAMETABLE_COLUMS; ++x) {
+        const attributeIdx = Math.floor(x / 4) + attrY;
+        const attribute = this.attributeTable[attributeIdx];
+
+        const lbAtr = x % 4 >> 1;
+        const hbAttr = y % 4 >> 1;
+        const quad = hbAttr << (1 + lbAtr);
+
+        const paletteIdx = (attribute >> quad) & 0b11;
+        const palette = this.getPalette(paletteIdx);
+
+        // console.log(
+        //   this.getTile(this.selectedNametable[x + nametableY]),
+        //   { x, nametableY, y, sum: x + nametableY },
+        //   this.selectedNametable.length
+        // );
+
+        this.screen.drawTileAt(
+          this.getTile(this.selectedNametable[x + nametableY]),
+          x,
+          y,
+          palette
+        );
+      }
+    }
+    // post render
+    if (this.scanline === 241) {
+      this.inVBlank = true;
+    } else if (this.scanline === 261) {
+      this.inVBlank = false;
     }
   }
 
@@ -340,7 +435,7 @@ export class PPU {
 
     this.vramInc = (value & VRAM_INC_MASK) === VRAM_INC_MASK ? 32 : 1;
     this.spriteAddr = (value & SPRITE_MASK) === SPRITE_MASK ? 0x1000 : 0x0000;
-    this.bgSpriteAddr = (value & BG_SPRITE_MASK) !== BG_SPRITE_MASK ? 256 : 0;
+    this.bgSpriteAddr = (value & BG_SPRITE_MASK) === BG_SPRITE_MASK ? 256 : 0;
 
     // todo:read sprite pattern
     this.nmiEnable = (value & NMI_ENABLE_MASK) === NMI_ENABLE_MASK;

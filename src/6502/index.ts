@@ -1,9 +1,4 @@
-import {
-  ADDRESSING_C_01,
-  ADDRESSING_C_10,
-  CYCLES_PER_SECOND,
-  DEBUG_LOC,
-} from "./constants";
+import { ADDRESSING_C_01, ADDRESSING_C_10, DEBUG_LOC } from "./constants";
 import { throwUnknown } from "./errors";
 import { AddressingMode } from "./types";
 import { StatusReg } from "./utilClasses";
@@ -62,7 +57,7 @@ export class Mos6502 {
 
   private isHalted = false;
 
-  private _cycles = 0;
+  cycles = 0;
 
   // Only available for cpu testing
   // constructor(buffer: ArrayBuffer, startPos?: number, loadPos?: number) {
@@ -132,23 +127,23 @@ export class Mos6502 {
     );
   };
 
-  private emuCycle = async (cycles: number) => {
+  private emuCycle = (cycles: number) => {
     if (process.env.NODE_ENV === "test") {
       return;
     }
-    this._cycles += cycles;
+    this.cycles += cycles;
 
-    const time = (this._cycles / CYCLES_PER_SECOND) * 1000;
+    // const time = (this._cycles / CYCLES_PER_SECOND) * 1000;
 
-    if (time > Math.random() * 50) {
-      return new Promise((resolve) =>
-        setTimeout(() => {
-          this._cycles = 0;
-          resolve(undefined);
-        }, time)
-      );
-    }
-    return Promise.resolve(undefined);
+    // if (time > Math.random() * 50) {
+    //   return new Promise((resolve) =>
+    //     setTimeout(() => {
+    //       this._cycles = 0;
+    //       resolve(undefined);
+    //     }, time)
+    //   );
+    // }
+    // return Promise.resolve(undefined);
   };
 
   public nmi = async () => {
@@ -182,7 +177,7 @@ export class Mos6502 {
     this.acc = 0;
     this.x = 0;
     this.y = 0;
-    this._cycles = 7;
+    this.cycles = 0;
     this.statusReg.status = 0;
     this.statusReg.interrupt = 1;
     this.jumpTo(vectorAddress);
