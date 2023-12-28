@@ -3,8 +3,8 @@ import { TILE_SIZE } from "../renderer";
 export const NAME_TABLE_MASK = 0b11;
 export const VRAM_INC_MASK = 0b100;
 
-export const SPRITE_MASK = 0b100;
-export const BG_SPRITE_MASK = 0b1000;
+export const SPRITE_MASK = 0b1000;
+export const BG_SPRITE_MASK = 0b1_0000;
 export const NMI_ENABLE_MASK = 0b1000_0000;
 
 export const PALETTE_LOCATION = 0x3f00;
