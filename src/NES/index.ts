@@ -26,7 +26,7 @@ export class NES {
   async startLoop() {
     while (true) {
       const beforeCycle = this.cpu.cycles;
-      await this.cpu.startExecution(1);
+      this.cpu.startExecution(1);
       const afterCyles = this.cpu.cycles;
       const cycles = afterCyles - beforeCycle;
       // 1 cpu cycle is 3 ppu cycles

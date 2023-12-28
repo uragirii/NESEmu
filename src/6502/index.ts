@@ -2,7 +2,7 @@ import { ADDRESSING_C_01, ADDRESSING_C_10, DEBUG_LOC } from "./constants";
 import { throwUnknown } from "./errors";
 import { AddressingMode } from "./types";
 import { StatusReg } from "./utilClasses";
-import { delayHalt, getSignedInt } from "./utilts";
+import { getSignedInt } from "./utilts";
 
 export class Mos6502 {
   memory: Uint8Array;
@@ -85,7 +85,7 @@ export class Mos6502 {
     return this.memory[this.programCounter++];
   };
 
-  public startExecution = async (
+  public startExecution = (
     instructions?: number,
     beforeExec?: (opcode: number) => void,
     afterExec?: (opcode: number) => void
@@ -97,13 +97,12 @@ export class Mos6502 {
       }
       if (this.isHalted) {
         // Delay for 500ms and make the thread beathe
-        await delayHalt(500);
-        continue;
+        break;
       }
 
       const opcode = this.fetchOpcode();
       beforeExec?.(opcode);
-      await this.executeOpcode(opcode);
+      this.executeOpcode(opcode);
       afterExec?.(opcode);
       remainingIns--;
     }
@@ -146,16 +145,16 @@ export class Mos6502 {
     // return Promise.resolve(undefined);
   };
 
-  public nmi = async () => {
+  public nmi = () => {
     // #FFFa-b
     const vectorAddress = this.make16Bytes(
       this.memory[0xfffa],
       this.memory[0xfffb]
     );
-    await this.executeInteruppt(vectorAddress);
+    this.executeInteruppt(vectorAddress);
   };
 
-  public irq = async () => {
+  public irq = () => {
     // #FFFE
     if (this.statusReg.interrupt) {
       return;
@@ -165,10 +164,10 @@ export class Mos6502 {
       this.memory[0xfffe],
       this.memory[0xffff]
     );
-    await this.executeInteruppt(vectorAddress);
+    this.executeInteruppt(vectorAddress);
   };
 
-  public reset = async () => {
+  public reset = () => {
     const vectorAddress = this.make16Bytes(
       this.memory[0xfffc],
       this.memory[0xfffd]
@@ -187,10 +186,7 @@ export class Mos6502 {
     this.isHalted = !this.isHalted;
   };
 
-  private executeInteruppt = async (
-    vectorAddress: number,
-    setBreak = false
-  ) => {
+  private executeInteruppt = (vectorAddress: number, setBreak = false) => {
     const lb = this.programCounter & 0xff;
     const hb = this.programCounter >> 8;
     this.pushOnStack(hb);
@@ -201,7 +197,7 @@ export class Mos6502 {
     this.pushOnStack(this.statusReg.status);
     this.statusReg.interrupt = true;
     this.jumpTo(vectorAddress);
-    await this.emuCycle(7);
+    this.emuCycle(7);
   };
 
   private fetch2Bytes = () => {
@@ -227,9 +223,9 @@ export class Mos6502 {
     this.statusReg.setAccFlags(diff);
   };
 
-  private getAddressing = async (
+  private getAddressing = (
     mode: AddressingMode
-  ): Promise<{ address: null | number; value: null | number }> => {
+  ): { address: null | number; value: null | number } => {
     switch (mode) {
       case "immediate": {
         return { value: this.fetchOpcode(), address: null };
@@ -348,7 +344,7 @@ export class Mos6502 {
     this.acc = total;
   }
 
-  private executeOpcode = async (opcode: number) => {
+  private executeOpcode = (opcode: number) => {
     switch (opcode) {
       case 0x00: {
         // brk
@@ -360,20 +356,20 @@ export class Mos6502 {
         // dummy fetch nothing happens
         const _signature = this.fetchOpcode();
 
-        await this.executeInteruppt(vectorAddress, true);
+        this.executeInteruppt(vectorAddress, true);
         break;
       }
       case 0x08: {
         // php
         // while pushing BRK flag is set
         this.pushOnStack(this.statusReg.status | 0b110000);
-        await this.emuCycle(3);
+        this.emuCycle(3);
         break;
       }
       case 0x18: {
         // clc
         this.statusReg.carry = 0;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x28: {
@@ -381,129 +377,129 @@ export class Mos6502 {
         const prevBrk = this.statusReg.break;
         this.statusReg.status = this.pullFromStack();
         this.statusReg.break = prevBrk;
-        await this.emuCycle(4);
+        this.emuCycle(4);
         break;
       }
       case 0x38: {
         //sec
         this.statusReg.carry = 1;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x48: {
         // pha
         this.pushOnStack(this.acc);
-        await this.emuCycle(3);
+        this.emuCycle(3);
         break;
       }
       case 0x58: {
         //sec
         this.statusReg.interrupt = 0;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x68: {
         // pla
         this.acc = this.pullFromStack();
-        await this.emuCycle(4);
+        this.emuCycle(4);
         break;
       }
       case 0x78: {
         //sec
         this.statusReg.interrupt = 1;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x88: {
         // dey
         // imposter
         this.y--;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x98: {
         // tya
         // Y -> A
         this.acc = this.y;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xa8: {
         // tay
         // a -> x
         this.y = this.acc;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xb8: {
         //sec
         this.statusReg.overflow = 0;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xc8: {
         //iny
         this.y++;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xd8: {
         // cld
         // Clear Decimal Mode
         this.statusReg.decimal = 0;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xe8: {
         //inx
         this.x++;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xf8: {
         // sed
         // set Decimal Mode
         this.statusReg.decimal = 1;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x8a: {
         // txa
         // x -> a
         this.acc = this.x;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x9a: {
         // txs
         // X -> SP
         this.stackPointer = this.x;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xaa: {
         // tax
         // a -> x
         this.x = this.acc;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xba: {
         // tsx
         // sp -> x
         this.x = this.stackPointer;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xca: {
         // dex;
         this.x--;
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0xea: {
         // nop
-        await this.emuCycle(2);
+        this.emuCycle(2);
         break;
       }
       case 0x4c: {
@@ -511,7 +507,7 @@ export class Mos6502 {
         // abs
         const address = this.fetch2Bytes();
         this.jumpTo(address);
-        await this.emuCycle(3);
+        this.emuCycle(3);
         break;
       }
       case 0x6c: {
@@ -519,7 +515,7 @@ export class Mos6502 {
         // indirect
         const address = this.read2Bytes(this.fetchOpcode(), this.fetchOpcode());
         this.jumpTo(address);
-        await this.emuCycle(5);
+        this.emuCycle(5);
         break;
       }
       case 0x20: {
@@ -530,7 +526,7 @@ export class Mos6502 {
         this.pushOnStack(lb);
         const jumpAddress = this.fetch2Bytes();
         this.jumpTo(jumpAddress);
-        await this.emuCycle(3);
+        this.emuCycle(3);
         break;
       }
       case 0x60: {
@@ -538,7 +534,7 @@ export class Mos6502 {
         const lb = this.pullFromStack();
         const hb = this.pullFromStack();
         this.jumpTo(this.make16Bytes(lb, hb) + 1);
-        await this.emuCycle(6);
+        this.emuCycle(6);
         break;
       }
       case 0x40: {
@@ -552,7 +548,7 @@ export class Mos6502 {
         const hb = this.pullFromStack();
 
         this.jumpTo(this.make16Bytes(lb, hb));
-        await this.emuCycle(6);
+        this.emuCycle(6);
         break;
       }
       default: {
@@ -572,9 +568,9 @@ export class Mos6502 {
               const offset = getSignedInt(this.fetchOpcode());
               if (this.statusReg.checkBranchCondition(xx, y)) {
                 this.jumpTo(this.programCounter + offset);
-                await this.emuCycle(3);
+                this.emuCycle(3);
               } else {
-                await this.emuCycle(2);
+                this.emuCycle(2);
               }
             } else {
               const mode = ADDRESSING_C_10[bbb];
@@ -591,7 +587,7 @@ export class Mos6502 {
                   if (opcode !== 0x24 && opcode !== 0x2c) {
                     throwUnknown(opcode);
                   }
-                  const { value } = await this.getAddressing(mode);
+                  const { value } = this.getAddressing(mode);
                   if (value === null) {
                     throw new Error(
                       `bit incorrect no value, ${opcode.toString(
@@ -605,12 +601,12 @@ export class Mos6502 {
                   this.statusReg.zero = (this.acc & value) === 0;
                   this.statusReg.negative = bit7;
                   this.statusReg.overflow = bit6;
-                  await this.emuCycle(4);
+                  this.emuCycle(4);
                   break;
                 }
                 case 0b101: {
                   //ldy
-                  const { value } = await this.getAddressing(mode);
+                  const { value } = this.getAddressing(mode);
                   if (value === null) {
                     throw new Error(
                       `ldy incorrect no value, ${opcode.toString(
@@ -619,12 +615,12 @@ export class Mos6502 {
                     );
                   }
                   this.y = value;
-                  await this.emuCycle(4);
+                  this.emuCycle(4);
                   break;
                 }
                 case 0b110: {
                   //cpy
-                  const { value } = await this.getAddressing(mode);
+                  const { value } = this.getAddressing(mode);
                   if (value === null) {
                     throw new Error(
                       `cpy incorrect no value, ${opcode.toString(
@@ -633,12 +629,12 @@ export class Mos6502 {
                     );
                   }
                   this.compare(this.y, value);
-                  await this.emuCycle(3);
+                  this.emuCycle(3);
                   break;
                 }
                 case 0b111: {
                   //cpx
-                  const { value } = await this.getAddressing(mode);
+                  const { value } = this.getAddressing(mode);
                   if (value === null) {
                     throw new Error(
                       `cpx incorrect no value, ${opcode.toString(
@@ -647,12 +643,12 @@ export class Mos6502 {
                     );
                   }
                   this.compare(this.x, value);
-                  await this.emuCycle(3);
+                  this.emuCycle(3);
                   break;
                 }
                 case 0b100: {
                   // sty
-                  const { address } = await this.getAddressing(mode);
+                  const { address } = this.getAddressing(mode);
                   if (address === null) {
                     throw new Error(
                       `sty incorrect no address, ${opcode.toString(
@@ -661,7 +657,7 @@ export class Mos6502 {
                     );
                   }
                   this.memory[address] = this.y;
-                  await this.emuCycle(4);
+                  this.emuCycle(4);
                   break;
                 }
                 default: {
@@ -678,7 +674,7 @@ export class Mos6502 {
             switch (aaa) {
               case 0b000: {
                 // ora
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `ora incorrect no address, ${opcode.toString(
@@ -687,12 +683,12 @@ export class Mos6502 {
                   );
                 }
                 this.acc = this.acc | value;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b001: {
                 // and
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `ora incorrect no address, ${opcode.toString(
@@ -701,12 +697,12 @@ export class Mos6502 {
                   );
                 }
                 this.acc = this.acc & value;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b010: {
                 // eor
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `ora incorrect no address, ${opcode.toString(
@@ -715,13 +711,13 @@ export class Mos6502 {
                   );
                 }
                 this.acc = this.acc ^ value;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b011: {
                 //adc
                 // a+m+c -> val;
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `adc incorrect no value, ${opcode.toString(
@@ -730,14 +726,14 @@ export class Mos6502 {
                   );
                 }
                 this.adc(value);
-                await this.emuCycle(4);
+                this.emuCycle(4);
 
                 break;
               }
               case 0b100: {
                 // sta
                 // A -> M;
-                const { address } = await this.getAddressing(mode);
+                const { address } = this.getAddressing(mode);
                 if (address === null) {
                   throw new Error(
                     `sta incorrect no address, ${opcode.toString(
@@ -746,12 +742,12 @@ export class Mos6502 {
                   );
                 }
                 this.memory[address] = this.acc;
-                await this.emuCycle(5);
+                this.emuCycle(5);
                 break;
               }
               case 0b101: {
                 // lda
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `lda incorrect no value, ${opcode.toString(
@@ -760,12 +756,12 @@ export class Mos6502 {
                   );
                 }
                 this.acc = value;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b110: {
                 // cmp
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `cmp incorrect no value, ${opcode.toString(
@@ -774,13 +770,13 @@ export class Mos6502 {
                   );
                 }
                 this.compare(this.acc, value);
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b111: {
                 //sbc
                 // As per https://stackoverflow.com/a/29224684
-                const { value } = await this.getAddressing(mode);
+                const { value } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `sbc incorrect no value, ${opcode.toString(
@@ -789,7 +785,7 @@ export class Mos6502 {
                   );
                 }
                 this.adc(~value & 0xff);
-                await this.emuCycle(4);
+                this.emuCycle(4);
 
                 break;
               }
@@ -805,7 +801,7 @@ export class Mos6502 {
             switch (aaa) {
               case 0b000: {
                 //asl
-                const { value, address } = await this.getAddressing(mode);
+                const { value, address } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `asl incorrect no value, ${opcode.toString(16)}`
@@ -827,12 +823,12 @@ export class Mos6502 {
                   this.memory[address] = shiftedValue;
                   this.statusReg.setAccFlags(shiftedValue);
                 }
-                await this.emuCycle(2);
+                this.emuCycle(2);
                 break;
               }
               case 0b001: {
                 // rol
-                const { value, address } = await this.getAddressing(mode);
+                const { value, address } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `rol incorrect no value, ${opcode.toString(16)}`
@@ -854,12 +850,12 @@ export class Mos6502 {
                   this.statusReg.setAccFlags(shiftedValue);
                   this.memory[address] = shiftedValue;
                 }
-                await this.emuCycle(6);
+                this.emuCycle(6);
                 break;
               }
               case 0b010: {
                 //lsr
-                const { value, address } = await this.getAddressing(mode);
+                const { value, address } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `lsr incorrect no value, ${opcode.toString(16)}`
@@ -881,12 +877,12 @@ export class Mos6502 {
 
                   this.memory[address] = shiftedValue;
                 }
-                await this.emuCycle(2);
+                this.emuCycle(2);
                 break;
               }
               case 0b011: {
                 // ror
-                const { value, address } = await this.getAddressing(mode);
+                const { value, address } = this.getAddressing(mode);
                 if (value === null) {
                   throw new Error(
                     `ror incorrect no value, ${opcode.toString(16)}`
@@ -909,13 +905,13 @@ export class Mos6502 {
                   this.statusReg.setAccFlags(shiftedValue);
                   this.memory[address] = shiftedValue;
                 }
-                await this.emuCycle(6);
+                this.emuCycle(6);
                 break;
               }
               case 0b101: {
                 //ldx
 
-                const { value } = await this.getAddressing(
+                const { value } = this.getAddressing(
                   mode.replace("x", "y") as AddressingMode
                 );
                 if (value === null) {
@@ -924,12 +920,12 @@ export class Mos6502 {
                   );
                 }
                 this.x = value;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b100: {
                 // stx
-                const { address } = await this.getAddressing(
+                const { address } = this.getAddressing(
                   mode.replace("x", "y") as AddressingMode
                 );
                 if (address === null) {
@@ -938,12 +934,12 @@ export class Mos6502 {
                   );
                 }
                 this.memory[address] = this.x;
-                await this.emuCycle(4);
+                this.emuCycle(4);
                 break;
               }
               case 0b110: {
                 //dec
-                const { address } = await this.getAddressing(mode);
+                const { address } = this.getAddressing(mode);
                 if (address === null) {
                   throw new Error(
                     `dec incorrect no address, ${opcode.toString(16)}`
@@ -951,12 +947,12 @@ export class Mos6502 {
                 }
                 this.memory[address]--;
                 this.statusReg.setAccFlags(this.memory[address]);
-                await this.emuCycle(3);
+                this.emuCycle(3);
                 break;
               }
               case 0b111: {
                 //inc
-                const { address } = await this.getAddressing(mode);
+                const { address } = this.getAddressing(mode);
                 if (address === null) {
                   throw new Error(
                     `dec incorrect no address, ${opcode.toString(16)}`
@@ -964,7 +960,7 @@ export class Mos6502 {
                 }
                 this.memory[address]++;
                 this.statusReg.setAccFlags(this.memory[address]);
-                await this.emuCycle(3);
+                this.emuCycle(3);
                 break;
               }
               default: {
