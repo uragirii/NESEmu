@@ -20,8 +20,6 @@ export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
 
-  private pixelMultiplier: number;
-
   private imageData: ImageData;
   private height: number;
   private width: number;
@@ -35,15 +33,13 @@ export class Renderer {
 
     this.ctx = this.canvas.getContext("2d")!;
 
-    this.pixelMultiplier = pixelMultiplier;
-
-    this.height = height * pixelMultiplier;
-    this.width = width * pixelMultiplier;
+    this.height = height;
+    this.width = width;
 
     this.canvas.height = this.height;
     this.canvas.width = this.width;
-    this.canvas.style.height = `${this.height}px`;
-    this.canvas.style.width = `${this.width}px`;
+    this.canvas.style.height = `${this.height * pixelMultiplier}px`;
+    this.canvas.style.width = `${this.width * pixelMultiplier}px`;
 
     this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
   }
@@ -68,10 +64,10 @@ export class Renderer {
         this.ctx.fillStyle =
           (palette ?? CHAR_TO_COLOR)[parseInt(pixel)] ?? "black";
         this.ctx.fillRect(
-          (offsetX * TILE_SIZE + x) * this.pixelMultiplier,
-          (offsetY * TILE_SIZE + y) * this.pixelMultiplier,
-          this.pixelMultiplier * this.pixelMultiplier,
-          this.pixelMultiplier * this.pixelMultiplier
+          offsetX * TILE_SIZE + x,
+          offsetY * TILE_SIZE + y,
+          1,
+          1
         );
       });
     });
@@ -89,18 +85,8 @@ export class Renderer {
   }
 
   private drawPixel(offsetX: number, offsetY: number, color: string) {
-    const startIdx =
-      (offsetY * this.width * this.pixelMultiplier +
-        offsetX * this.pixelMultiplier) *
-      4;
-    for (let i = 0; i < this.pixelMultiplier; ++i) {
-      for (let j = 0; j < this.pixelMultiplier; ++j) {
-        this.imageData.data.set(
-          this.getRGBFromString(color),
-          startIdx + j + i * this.width * 4
-        );
-      }
-    }
+    const startIdx = (offsetY * this.width + offsetX) * 4;
+    this.imageData.data.set(this.getRGBFromString(color), startIdx);
   }
 
   public drawTileAtNext = (
@@ -123,7 +109,6 @@ export class Renderer {
 
   public render() {
     this.ctx.putImageData(this.imageData, 0, 0);
-    debugger;
   }
 
   public drawRect = (
@@ -134,12 +119,7 @@ export class Renderer {
     color: string
   ) => {
     this.ctx.fillStyle = color;
-    this.ctx.fillRect(
-      offsetX * this.pixelMultiplier,
-      offsetY * this.pixelMultiplier,
-      width * this.pixelMultiplier,
-      height * this.pixelMultiplier
-    );
+    this.ctx.fillRect(offsetX, offsetY, width, height);
   };
 }
 

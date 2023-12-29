@@ -138,6 +138,9 @@ canvas {
   background-color: black;
   height: 100px;
   width: 100px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: optimizeSpeed;
 }
 
 #nametable-ctn {

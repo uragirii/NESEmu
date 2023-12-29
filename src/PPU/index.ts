@@ -89,7 +89,7 @@ export class PPU {
     this.screen = createRenderer("screen", {
       height: 240,
       width: 256,
-      pixelMultiplier: 1,
+      pixelMultiplier: 2,
     });
 
     this.screen.appendTo(screenRenderedCtn);
