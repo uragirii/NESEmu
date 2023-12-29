@@ -19,6 +19,7 @@ import {
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
 import { delayHalt } from "../6502/utilts";
+import { Palette } from "../types";
 
 export class PPU {
   private nmiEnable = false;
@@ -54,7 +55,7 @@ export class PPU {
     NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE
   );
   private attributeTable = new Uint8Array(ATTRIBUTE_TABLE_SIZE);
-  private frameBgPalette: string[][] = [];
+  private frameBgPalette: Palette[] = [];
 
   private frameStart: number | null = null;
 
@@ -260,8 +261,8 @@ export class PPU {
           const frameTime = end - this.frameStart;
           console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
         }
-        console.log("NEW FRAME");
-        await delayHalt(10);
+        // console.log("NEW FRAME");
+        await delayHalt(1);
         this.frameStart = performance.now();
         // Fetch nametable and attirbute tables
         this.selectedNametable.set(
@@ -304,7 +305,7 @@ export class PPU {
         const quad = hbAttr << (1 + lbAtr);
 
         const paletteIdx = (attribute >> quad) & 0b11;
-        const palette = this.getPalette(paletteIdx);
+        const palette = this.frameBgPalette[paletteIdx];
 
         // console.log(
         //   this.getTile(this.selectedNametable[x + nametableY]),
@@ -329,7 +330,7 @@ export class PPU {
     }
   }
 
-  private getPalette(idx: number): string[] {
+  private getPalette(idx: number): Palette {
     const startLocation = PALETTE_LOCATION + idx * 4;
     return new Array(4)
       .fill(0)
@@ -437,12 +438,5 @@ export class PPU {
 
     // todo:read sprite pattern
     this.nmiEnable = (value & NMI_ENABLE_MASK) === NMI_ENABLE_MASK;
-
-    console.log("setPPUCntrl ", {
-      nameTable,
-      baseNameTable: this.baseNametable,
-      bgSpriteAddr: this.bgSpriteAddr,
-      nmiEnable: this.nmiEnable,
-    });
   }
 }

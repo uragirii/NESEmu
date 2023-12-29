@@ -1,16 +1,21 @@
+import { Palette } from "./types";
+
 const RENDER_MAPS = new Map<string, Renderer>();
 
 export const TILE_SIZE = 8;
 
-const CHAR_TO_COLOR = ["#FFFFFF", "#ee1c25", "#0065b3", "#fed1b0"];
+const CHAR_TO_COLOR: Palette = [
+  [255, 255, 255, 255],
+  [238, 28, 37, 255],
+  [0, 101, 179, 255],
+  [254, 209, 176, 255],
+];
 
 type RendererOptions = {
   height: number;
   width: number;
   pixelMultiplier?: number;
 };
-
-const COLOR_MAP: Record<string, number[]> = {};
 
 /**
  * Renderer class to render sprites, memory etc on screen using canvas
@@ -56,13 +61,13 @@ export class Renderer {
     tile: string[],
     offsetX: number,
     offsetY: number,
-    palette?: string[]
+    palette?: Palette
   ) => {
     tile.forEach((row, y) => {
       const pixels = row.split("");
       pixels.forEach((pixel, x) => {
-        this.ctx.fillStyle =
-          (palette ?? CHAR_TO_COLOR)[parseInt(pixel)] ?? "black";
+        const pixelColor = (palette ?? CHAR_TO_COLOR)[parseInt(pixel)];
+        this.ctx.fillStyle = `rgba(${pixelColor.join(",")})`;
         this.ctx.fillRect(
           offsetX * TILE_SIZE + x,
           offsetY * TILE_SIZE + y,
@@ -73,27 +78,16 @@ export class Renderer {
     });
   };
 
-  private getRGBFromString(color: string) {
-    if (COLOR_MAP[color]) {
-      return COLOR_MAP[color];
-    }
-    const red = parseInt(color.substring(1, 3), 16);
-    const green = parseInt(color.substring(3, 5), 16);
-    const blue = parseInt(color.substring(5, 7), 16);
-    COLOR_MAP[color] = [red, green, blue, 255];
-    return COLOR_MAP[color];
-  }
-
-  private drawPixel(offsetX: number, offsetY: number, color: string) {
+  private drawPixel(offsetX: number, offsetY: number, color: number[]) {
     const startIdx = (offsetY * this.width + offsetX) * 4;
-    this.imageData.data.set(this.getRGBFromString(color), startIdx);
+    this.imageData.data.set(color, startIdx);
   }
 
   public drawTileAtNext = (
     tile: string[],
     offsetX: number,
     offsetY: number,
-    palette?: string[]
+    palette: Palette
   ) => {
     tile.forEach((row, y) => {
       const pixels = row.split("");
@@ -101,7 +95,7 @@ export class Renderer {
         this.drawPixel(
           offsetX * TILE_SIZE + x,
           offsetY * TILE_SIZE + y,
-          (palette ?? CHAR_TO_COLOR)[parseInt(pixel)]
+          palette[parseInt(pixel)]
         );
       });
     });
@@ -116,9 +110,9 @@ export class Renderer {
     offsetY: number,
     height: number,
     width: number,
-    color: string
+    color: number[]
   ) => {
-    this.ctx.fillStyle = color;
+    this.ctx.fillStyle = `rgba(${color.join(",")})`;
     this.ctx.fillRect(offsetX, offsetY, width, height);
   };
 }

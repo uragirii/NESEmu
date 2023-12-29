@@ -26,7 +26,7 @@ export const nameTableRendereCtn = document.getElementById("nametable-ctn")!;
 export const paletteRendereCtn = document.getElementById("palette-ctn")!;
 export const screenRenderedCtn = document.getElementById("screen-ctn")!;
 
-export const PPU_COLORS = [
+export const PPU_COLORS_STRING = [
   "#626262",
   "#001FB2",
   "#2404C8",
@@ -92,3 +92,10 @@ export const PPU_COLORS = [
   "#000000",
   "#000000",
 ];
+
+export const PPU_COLORS = PPU_COLORS_STRING.map((color) => {
+  const red = parseInt(color.substring(1, 3), 16);
+  const green = parseInt(color.substring(3, 5), 16);
+  const blue = parseInt(color.substring(5, 7), 16);
+  return [red, green, blue, 255];
+});
