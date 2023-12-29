@@ -2,13 +2,15 @@ const RENDER_MAPS = new Map<string, Renderer>();
 
 export const TILE_SIZE = 8;
 
-const CHAR_TO_COLOR = ["white", "#ee1c25", "#0065b3", "#fed1b0"];
+const CHAR_TO_COLOR = ["#FFFFFF", "#ee1c25", "#0065b3", "#fed1b0"];
 
 type RendererOptions = {
   height: number;
   width: number;
   pixelMultiplier?: number;
 };
+
+const COLOR_MAP: Record<string, number[]> = {};
 
 /**
  * Renderer class to render sprites, memory etc on screen using canvas
@@ -19,6 +21,10 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
 
   private pixelMultiplier: number;
+
+  private imageData: ImageData;
+  private height: number;
+  private width: number;
 
   constructor(
     name: string,
@@ -31,13 +37,15 @@ export class Renderer {
 
     this.pixelMultiplier = pixelMultiplier;
 
-    const canvasHeight = height * pixelMultiplier;
-    const canvasWidth = width * pixelMultiplier;
+    this.height = height * pixelMultiplier;
+    this.width = width * pixelMultiplier;
 
-    this.canvas.height = canvasHeight;
-    this.canvas.width = canvasWidth;
-    this.canvas.style.height = `${canvasHeight}px`;
-    this.canvas.style.width = `${canvasWidth}px`;
+    this.canvas.height = this.height;
+    this.canvas.width = this.width;
+    this.canvas.style.height = `${this.height}px`;
+    this.canvas.style.width = `${this.width}px`;
+
+    this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
   }
 
   set onClick(eventFn: () => void) {
@@ -68,6 +76,55 @@ export class Renderer {
       });
     });
   };
+
+  private getRGBFromString(color: string) {
+    if (COLOR_MAP[color]) {
+      return COLOR_MAP[color];
+    }
+    const red = parseInt(color.substring(1, 3), 16);
+    const green = parseInt(color.substring(3, 5), 16);
+    const blue = parseInt(color.substring(5, 7), 16);
+    COLOR_MAP[color] = [red, green, blue, 255];
+    return COLOR_MAP[color];
+  }
+
+  private drawPixel(offsetX: number, offsetY: number, color: string) {
+    const startIdx =
+      (offsetY * this.width * this.pixelMultiplier +
+        offsetX * this.pixelMultiplier) *
+      4;
+    for (let i = 0; i < this.pixelMultiplier; ++i) {
+      for (let j = 0; j < this.pixelMultiplier; ++j) {
+        this.imageData.data.set(
+          this.getRGBFromString(color),
+          startIdx + j + i * this.width * 4
+        );
+      }
+    }
+  }
+
+  public drawTileAtNext = (
+    tile: string[],
+    offsetX: number,
+    offsetY: number,
+    palette?: string[]
+  ) => {
+    tile.forEach((row, y) => {
+      const pixels = row.split("");
+      pixels.forEach((pixel, x) => {
+        this.drawPixel(
+          offsetX * TILE_SIZE + x,
+          offsetY * TILE_SIZE + y,
+          (palette ?? CHAR_TO_COLOR)[parseInt(pixel)]
+        );
+      });
+    });
+  };
+
+  public render() {
+    this.ctx.putImageData(this.imageData, 0, 0);
+    debugger;
+  }
 
   public drawRect = (
     offsetX: number,

@@ -70,7 +70,7 @@ export class PPU {
         width: NAMETABLE_COLUMS * TILE_SIZE,
       });
 
-      renderer.appendTo(nameTableRendereCtn);
+      // renderer.appendTo(nameTableRendereCtn);
       return renderer;
     });
     this.paletteRenderers = new Array(8).fill(0).map((_, index) => {
@@ -79,7 +79,7 @@ export class PPU {
         width: PALETTE_BLOCK_WIDTH * 4, // just for symmetry purpose
       });
 
-      renderer.appendTo(paletteRendereCtn);
+      // renderer.appendTo(paletteRendereCtn);
 
       renderer.onClick = () => {
         this.drawNameTableWithPalette(index);
@@ -89,7 +89,7 @@ export class PPU {
     this.screen = createRenderer("screen", {
       height: 240,
       width: 256,
-      pixelMultiplier: 2,
+      pixelMultiplier: 1,
     });
 
     this.screen.appendTo(screenRenderedCtn);
@@ -261,7 +261,7 @@ export class PPU {
           console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
         }
         console.log("NEW FRAME");
-        await delayHalt(50);
+        await delayHalt(10);
         this.frameStart = performance.now();
         // Fetch nametable and attirbute tables
         this.selectedNametable.set(
@@ -312,7 +312,7 @@ export class PPU {
         //   this.selectedNametable.length
         // );
 
-        this.screen.drawTileAt(
+        this.screen.drawTileAtNext(
           this.getTile(this.selectedNametable[x + nametableY]),
           x,
           y,
@@ -322,6 +322,7 @@ export class PPU {
     }
     // post render
     if (this.scanline === 241) {
+      this.screen.render();
       this.inVBlank = true;
     } else if (this.scanline === 261) {
       this.inVBlank = false;
