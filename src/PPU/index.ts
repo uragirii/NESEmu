@@ -256,14 +256,8 @@ export class PPU {
     this.cycles += cycles;
     if (this.cycles > 341) {
       if (this.scanline === 0) {
-        if (this.frameStart) {
-          const end = performance.now();
-          const frameTime = end - this.frameStart;
-          console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
-        }
         // console.log("NEW FRAME");
         await delayHalt(1);
-        this.frameStart = performance.now();
         // Fetch nametable and attirbute tables
         this.selectedNametable.set(
           this.memory.slice(
@@ -291,9 +285,8 @@ export class PPU {
     }
   }
 
-  private drawScanline() {
-    const y = Math.floor(this.scanline / TILE_SIZE);
-    if (this.scanline < 239) {
+  private drawFrame() {
+    for (let y = 0; y < NAMETABLE_ROWS; ++y) {
       const attrY = 8 * Math.floor(y / 4);
       const nametableY = NAMETABLE_COLUMS * y;
       for (let x = 0; x < NAMETABLE_COLUMS; ++x) {
@@ -320,6 +313,44 @@ export class PPU {
           palette
         );
       }
+    }
+  }
+
+  private drawScanline() {
+    if (this.scanline === 1) {
+      if (this.frameStart) {
+        const end = performance.now();
+        const frameTime = end - this.frameStart;
+        console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
+      }
+      this.frameStart = performance.now();
+      this.drawFrame();
+      // const attrY = 8 * Math.floor(y / 4);
+      // const nametableY = NAMETABLE_COLUMS * y;
+      // for (let x = 0; x < NAMETABLE_COLUMS; ++x) {
+      //   const attributeIdx = Math.floor(x / 4) + attrY;
+      //   const attribute = this.attributeTable[attributeIdx];
+
+      //   const lbAtr = x % 4 >> 1;
+      //   const hbAttr = y % 4 >> 1;
+      //   const quad = hbAttr << (1 + lbAtr);
+
+      //   const paletteIdx = (attribute >> quad) & 0b11;
+      //   const palette = this.frameBgPalette[paletteIdx];
+
+      //   // console.log(
+      //   //   this.getTile(this.selectedNametable[x + nametableY]),
+      //   //   { x, nametableY, y, sum: x + nametableY },
+      //   //   this.selectedNametable.length
+      //   // );
+
+      //   this.screen.drawTileAtNext(
+      //     this.getTile(this.selectedNametable[x + nametableY]),
+      //     x,
+      //     y,
+      //     palette
+      //   );
+      // }
     }
     // post render
     if (this.scanline === 241) {
