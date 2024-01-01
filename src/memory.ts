@@ -39,12 +39,16 @@ export const createCPUMemory = (
 ) => {
   const memory = new Uint8Array(CPUMEMORY_SIZE);
 
-  if (prgRom.byteLength > MAX_ROM_SIZE) {
-    throw "only 4kb rom supported";
+  if (prgRom.byteLength > 2 * MAX_ROM_SIZE) {
+    throw "only 8kb rom supported";
   }
 
-  memory.set(prgRom, 0x8000);
-  memory.set(prgRom, 0xc000);
+  if (prgRom.byteLength <= MAX_ROM_SIZE) {
+    memory.set(prgRom, 0x8000);
+    memory.set(prgRom, 0xc000);
+  } else {
+    memory.set(prgRom, 0x8000);
+  }
 
   const getParsedAddress = (address: number) => {
     /**
