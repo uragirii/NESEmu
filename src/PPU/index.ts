@@ -47,7 +47,7 @@ export class PPU {
 
   private screen: Renderer;
 
-  private scanline = 0;
+  scanline = 0;
   private pixel = 0;
   private cycles = 0;
 
@@ -249,15 +249,16 @@ export class PPU {
     }
   }
 
-  async runFor(cycles: number, cpuNMI: () => void) {
+  runFor(cycles: number, cpuNMI: () => void) {
     // This is not a cycle accurate PPU, accessing memory again n again is troublesome
     // I will draw the scanline as soon as possible and do no op for rest of the cycles
     // Each scanline is 341 cycles.
     this.cycles += cycles;
+    this.scanline %= 262;
     if (this.cycles > 341) {
       if (this.scanline === 0) {
         // console.log("NEW FRAME");
-        await delayHalt(1);
+        // await delayHalt(1);
         // Fetch nametable and attirbute tables
         this.selectedNametable.set(
           this.memory.slice(
@@ -275,7 +276,7 @@ export class PPU {
           .fill(0)
           .map((_, idx) => this.getPalette(idx));
       }
-      this.scanline = (this.scanline + 1) % 262;
+      this.scanline++;
       this.cycles %= 341;
       this.drawScanline();
       if (this.scanline === 241 && this.nmiEnable) {

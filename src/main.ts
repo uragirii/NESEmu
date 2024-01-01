@@ -78,7 +78,7 @@ fileUploader.onchange = async (e) => {
 
   try {
     // nes.cpu.programCounter = 0xc000;
-    await nes.startLoop();
+    requestAnimationFrame(() => nes.startAnimationLoop());
   } catch (error) {
     halt.innerText = "Err";
     console.error(error);

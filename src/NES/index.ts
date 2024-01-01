@@ -1,6 +1,6 @@
 import { Mos6502 } from "../6502";
 import { createCPUMemory } from "../memory";
-import { NESFile } from "../NESFile";
+import { NESFile } from "./NESFile";
 import { PPU } from "../PPU";
 
 export class NES {
@@ -23,16 +23,19 @@ export class NES {
     this.cpu.reset();
   }
 
-  async startLoop() {
-    while (true) {
+  startAnimationLoop() {
+    this.ppu.scanline = 0;
+    while (this.ppu.scanline < 262) {
       const beforeCycle = this.cpu.cycles;
       this.cpu.startExecution(1);
       const afterCyles = this.cpu.cycles;
       const cycles = afterCyles - beforeCycle;
       // 1 cpu cycle is 3 ppu cycles
-      await this.ppu.runFor(cycles * 3, () => {
+      this.ppu.runFor(cycles * 3, () => {
         this.cpu.nmi();
       });
     }
+
+    requestAnimationFrame(() => this.startAnimationLoop());
   }
 }
