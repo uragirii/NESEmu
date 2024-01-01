@@ -1,3 +1,4 @@
+import type { NES } from "./NES";
 import { Controller } from "./controller";
 
 const CPUMEMORY_SIZE = 2 ** 16;
@@ -32,11 +33,8 @@ const controller1 = new Controller();
  *
  * @see https://www.nesdev.org/wiki/CPU_memory_map
  */
-export const createCPUMemory = (
-  prgRom: Uint8Array,
-  ppuRegRead: (address: number) => number,
-  ppuRegWrite: (address: number, value: number) => void
-) => {
+export const createCPUMemory = (nes: NES) => {
+  const prgRom = nes.file.programROM;
   const memory = new Uint8Array(CPUMEMORY_SIZE);
 
   if (prgRom.byteLength > 2 * MAX_ROM_SIZE) {
@@ -101,7 +99,7 @@ export const createCPUMemory = (
 
       if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
         // this is PPU space
-        const ppuReg = ppuRegRead(parsedAddress);
+        const ppuReg = nes.ppu.readPPUReg(parsedAddress);
         // console.log(
         //   `R 0x${
         //     TEMP_RECORD[parsedAddress.toString(16) as "2000"]
@@ -148,7 +146,7 @@ export const createCPUMemory = (
         //   } 0x${newValue.toString(16)} ${prop}`
         // );
 
-        ppuRegWrite(parsedAddress, newValue);
+        nes.ppu.writePPUReg(parsedAddress, newValue);
         return true;
       }
 

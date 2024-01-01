@@ -18,8 +18,8 @@ import {
   screenRenderedCtn,
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
-import { delayHalt } from "../6502/utilts";
 import { Palette } from "../types";
+import type { NES } from "../NES";
 
 export class PPU {
   private nmiEnable = false;
@@ -59,7 +59,11 @@ export class PPU {
 
   private frameStart: number | null = null;
 
-  constructor(chrRom: Uint8Array) {
+  private nes: NES;
+
+  constructor(nes: NES) {
+    this.nes = nes;
+    const chrRom = nes.file.characterROM;
     if (chrRom.byteLength > 0x2000) {
       throw "ppu can have 2000 bytes of chr rom";
     }
@@ -249,7 +253,7 @@ export class PPU {
     }
   }
 
-  runFor(cycles: number, cpuNMI: () => void) {
+  runFor(cycles: number) {
     // This is not a cycle accurate PPU, accessing memory again n again is troublesome
     // I will draw the scanline as soon as possible and do no op for rest of the cycles
     // Each scanline is 341 cycles.
@@ -281,7 +285,7 @@ export class PPU {
       this.drawScanline();
       if (this.scanline === 241 && this.nmiEnable) {
         console.log("PPU TRIGGER NMI");
-        cpuNMI();
+        this.nes.cpu.nmi();
       }
     }
   }

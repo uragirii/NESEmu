@@ -11,14 +11,8 @@ export class NES {
 
   constructor(buffer: Uint8Array) {
     this.file = new NESFile(buffer);
-    this.ppu = new PPU(this.file.characterROM);
-    this.memory = createCPUMemory(
-      this.file.programROM,
-      (address) => this.ppu.readPPUReg(address),
-      (address, val) => {
-        this.ppu.writePPUReg(address, val);
-      }
-    );
+    this.ppu = new PPU(this);
+    this.memory = createCPUMemory(this);
     this.cpu = new Mos6502(this.memory);
     this.cpu.reset();
   }
@@ -31,9 +25,7 @@ export class NES {
       const afterCyles = this.cpu.cycles;
       const cycles = afterCyles - beforeCycle;
       // 1 cpu cycle is 3 ppu cycles
-      this.ppu.runFor(cycles * 3, () => {
-        this.cpu.nmi();
-      });
+      this.ppu.runFor(cycles * 3);
     }
 
     requestAnimationFrame(() => this.startAnimationLoop());
