@@ -17,6 +17,13 @@ type RendererOptions = {
   pixelMultiplier?: number;
 };
 
+type OnClickHandler = (ev: {
+  actualX: number;
+  actualY: number;
+  spriteX: number;
+  spriteY: number;
+}) => void;
+
 /**
  * Renderer class to render sprites, memory etc on screen using canvas
  */
@@ -28,6 +35,12 @@ export class Renderer {
   private imageData: ImageData;
   private height: number;
   private width: number;
+  /**
+   * Note that this is just multiplier for CSS and not the canvas size but DOM size
+   */
+  private pixelMultiplier = 1;
+
+  private _onClick: OnClickHandler | null = null;
 
   constructor(
     name: string,
@@ -46,11 +59,12 @@ export class Renderer {
     this.canvas.style.height = `${this.height * pixelMultiplier}px`;
     this.canvas.style.width = `${this.width * pixelMultiplier}px`;
 
-    this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
-  }
+    this.pixelMultiplier = pixelMultiplier;
 
-  set onClick(eventFn: () => void) {
-    this.canvas.onclick = eventFn;
+    this.imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+    this.canvas.onclick = (ev) => {
+      this.onClickHandler(ev);
+    };
   }
 
   public appendTo = (domElement: HTMLElement) => {
@@ -115,6 +129,26 @@ export class Renderer {
     this.ctx.fillStyle = `rgba(${color.join(",")})`;
     this.ctx.fillRect(offsetX, offsetY, width, height);
   };
+
+  private onClickHandler = (ev: MouseEvent) => {
+    const { x, y } = this.canvas.getBoundingClientRect();
+    const { clientX, clientY } = ev;
+    const actualX = Math.floor((clientX - x) / this.pixelMultiplier);
+    const actualY = Math.floor((clientY - y) / this.pixelMultiplier);
+    const spriteX = Math.floor(actualX / 8);
+    const spriteY = Math.floor(actualY / 8);
+
+    this._onClick?.({
+      actualX,
+      actualY,
+      spriteX,
+      spriteY,
+    });
+  };
+
+  set onclick(handler: OnClickHandler) {
+    this._onClick = handler;
+  }
 }
 
 export const createRenderer = (name: string, options: RendererOptions) => {

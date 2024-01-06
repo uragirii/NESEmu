@@ -83,9 +83,9 @@ export class PPU {
 
       // renderer.appendTo(paletteRendereCtn);
 
-      renderer.onClick = () => {
-        this.drawNameTableWithPalette(index);
-      };
+      // renderer.onClick = () => {
+      //   this.drawNameTableWithPalette(index);
+      // };
       return renderer;
     });
     this.screen = createRenderer("screen", {
@@ -95,6 +95,17 @@ export class PPU {
     });
 
     this.screen.appendTo(screenRenderedCtn);
+
+    // this.screen.onClick = (ev) => {};
+    this.screen.onclick = ({ spriteX, spriteY }) => {
+      const { paletteIdx } = this.getTileAndPalette(spriteX, spriteY);
+      console.log(
+        spriteX,
+        spriteY,
+        paletteIdx,
+        this.debugGetPaletteRaw(paletteIdx).join(",")
+      );
+    };
   }
 
   private normalizeAddress = (_address: number) => {
@@ -272,27 +283,32 @@ export class PPU {
     }
   }
 
+  private getTileAndPalette = (colX: number, rowY: number) => {
+    const attrY = 8 * Math.floor(rowY / 4);
+    const nametableY = NAMETABLE_COLUMS * rowY;
+    const attributeIdx = Math.floor(colX / 4) + attrY;
+    const attribute = this.attributeTable[attributeIdx];
+
+    const lbAtr = colX % 2;
+    const hbAttr = rowY % 2;
+    const quad = (hbAttr << 1) + lbAtr;
+
+    const paletteIdx = (attribute >> (quad * 2)) & 0b11;
+    const palette = this.frameBgPalette[paletteIdx];
+    const tile = this.getTile(this.selectedNametable[colX + nametableY]);
+
+    return {
+      tile,
+      palette,
+      paletteIdx,
+    };
+  };
+
   private drawFrame() {
-    for (let y = 0; y < NAMETABLE_ROWS; ++y) {
-      const attrY = 8 * Math.floor(y / 4);
-      const nametableY = NAMETABLE_COLUMS * y;
-      for (let x = 0; x < NAMETABLE_COLUMS; ++x) {
-        const attributeIdx = Math.floor(x / 4) + attrY;
-        const attribute = this.attributeTable[attributeIdx];
-
-        const lbAtr = x % 4 >> 1;
-        const hbAttr = y % 4 >> 1;
-        const quad = hbAttr << (1 + lbAtr);
-
-        const paletteIdx = (attribute >> quad) & 0b11;
-        const palette = this.frameBgPalette[paletteIdx];
-
-        this.screen.drawTileAtNext(
-          this.getTile(this.selectedNametable[x + nametableY]),
-          x,
-          y,
-          palette
-        );
+    for (let rowY = 0; rowY < NAMETABLE_ROWS; ++rowY) {
+      for (let colX = 0; colX < NAMETABLE_COLUMS; ++colX) {
+        const { tile, palette } = this.getTileAndPalette(colX, rowY);
+        this.screen.drawTileAtNext(tile, colX, rowY, palette);
       }
     }
   }
@@ -318,6 +334,17 @@ export class PPU {
         colorIdx === 0
           ? PPU_COLORS[this.memory[PALETTE_LOCATION]]
           : PPU_COLORS[this.memory[startLocation + colorIdx]]
+      );
+  }
+
+  private debugGetPaletteRaw(idx: number) {
+    const startLocation = PALETTE_LOCATION + idx * 4;
+    return new Array(4)
+      .fill(0)
+      .map((_, colorIdx) =>
+        colorIdx === 0
+          ? this.memory[PALETTE_LOCATION].toString(16).padStart(2, "0")
+          : this.memory[startLocation + colorIdx].toString(16).padStart(2, "0")
       );
   }
 
@@ -362,7 +389,6 @@ export class PPU {
   }
 
   private drawNameTableWithPalette(idx: number) {
-    const start = performance.now();
     for (let index = 0; index < NAMETABLE_SIZE * 4; index++) {
       this.debugNametable(
         NAMETABLE_LOCATION + index,
@@ -370,8 +396,6 @@ export class PPU {
         idx
       );
     }
-    const end = performance.now();
-    console.log("Draw Nametable", end - start);
   }
 
   private getSprite = (high: Uint8Array, low: Uint8Array) => {
@@ -387,7 +411,7 @@ export class PPU {
       for (let x = 0; x < 8; x++) {
         const hb = highStr[y][x];
         const lb = lowStr[y][x];
-        const bit = hb + lb;
+        const bit = lb + hb;
         line.push(parseInt(bit, 2));
       }
       sprite.push(line.join(""));

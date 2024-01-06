@@ -8,7 +8,7 @@ fileUploader.type = "file";
 // first lets make a disambelly
 const loadRomInput = document.getElementById("loadRom")!;
 const halt = document.getElementById("halt")! as HTMLButtonElement;
-const fpsCounter = document.getElementById("fps")!;
+const fpsCounter = document.getElementById("fps") as HTMLButtonElement;
 
 loadRomInput.onclick = () => fileUploader.click();
 
@@ -29,6 +29,7 @@ fileUploader.onchange = async (e) => {
   halt.onclick = () => {
     halted = !halted;
     nes.toggleHalt();
+    fpsCounter.disabled = !halted;
     halt.innerText = halted ? "Play" : "Pause";
   };
 
