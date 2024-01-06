@@ -9,43 +9,15 @@
   <body>
     <div class="content">
       <h1>NES Emulator Playground</h1>
-      <div class="box-container">
-        <div class="box">
-          <h2>CPU</h2>
-          <div class="box-content">
-            <div class="code-container" id="main-reg">
-              <code>A: --</code>
-              <code>X: --</code>
-              <code>Y: --</code>
-            </div>
-            <hr />
-            <div class="code-container" id="other-reg">
-              <code>PC: --</code>
-              <code>SP: --</code>
-              <code>Status: -----</code>
-            </div>
-            <hr />
-            <div>
-              <div>
-                <code id="memory">0x00: 0x00 0x00 0x00 0x00</code>
-              </div>
-              <code id="opcode"> Opcode : -- </code>
-            </div>
-            <div id="actions">
-              <button id="loadRom">Load ROM</button>
-              <button id="nmi">NMI</button>
-              <button id="halt">Pause</button>
-            </div>
-          </div>
+      <div id="playground">
+        <!-- <div id="nametable-ctn"></div>
+          <div id="palette-ctn"></div> -->
+        <div id="actions">
+          <button id="loadRom">Load ROM</button>
+          <button id="halt">Pause</button>
+          <button id="fps" disabled>FPS : 0</button>
         </div>
-        <div class="box">
-          <h2>PPU</h2>
-          <div id="screen-ctn">
-            <button id="draw">Draw</button>
-          </div>
-          <div id="nametable-ctn"></div>
-          <div id="palette-ctn"></div>
-        </div>
+        <div id="screen-ctn"></div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

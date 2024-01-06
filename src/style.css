@@ -158,8 +158,10 @@ canvas {
 
 #actions {
   margin-top: 1em;
+  margin-bottom: 1em;
   display: flex;
   gap: 1em;
+  align-items: center;
 }
 
 .box-content {
@@ -171,4 +173,9 @@ canvas {
 
 hr {
   width: 95%;
+}
+
+#playground {
+  margin-right: auto;
+  margin-left: auto;
 }

@@ -57,8 +57,6 @@ export class PPU {
   private attributeTable = new Uint8Array(ATTRIBUTE_TABLE_SIZE);
   private frameBgPalette: Palette[] = [];
 
-  private frameStart: number | null = null;
-
   private nes: NES;
 
   constructor(nes: NES) {
@@ -284,7 +282,6 @@ export class PPU {
       this.cycles %= 341;
       this.drawScanline();
       if (this.scanline === 241 && this.nmiEnable) {
-        console.log("PPU TRIGGER NMI");
         this.nes.cpu.nmi();
       }
     }
@@ -323,12 +320,6 @@ export class PPU {
 
   private drawScanline() {
     if (this.scanline === 1) {
-      if (this.frameStart) {
-        const end = performance.now();
-        const frameTime = end - this.frameStart;
-        console.log("FRAME TIME", frameTime, "FPS", 1000 / frameTime);
-      }
-      this.frameStart = performance.now();
       this.drawFrame();
       // const attrY = 8 * Math.floor(y / 4);
       // const nametableY = NAMETABLE_COLUMS * y;

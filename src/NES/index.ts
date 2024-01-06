@@ -12,6 +12,8 @@ export class NES {
   halted = false;
   rafId: number | null = null;
 
+  onFrame?: () => void;
+
   constructor(buffer: Uint8Array) {
     this.file = new NESFile(buffer);
     this.ppu = new PPU(this);
@@ -33,6 +35,7 @@ export class NES {
       // 1 cpu cycle is 3 ppu cycles
       this.ppu.runFor(cycles * 3);
     }
+    this.onFrame?.();
 
     this.rafId = requestAnimationFrame(() => this.startAnimationLoop());
   }

@@ -1,4 +1,3 @@
-import { Mos6502 } from "./6502";
 import { NES } from "./NES";
 import "./style.css";
 import { readFileAsBinary } from "./utils";
@@ -8,43 +7,8 @@ fileUploader.type = "file";
 
 // first lets make a disambelly
 const loadRomInput = document.getElementById("loadRom")!;
-const nmi = document.getElementById("nmi")! as HTMLButtonElement;
 const halt = document.getElementById("halt")! as HTMLButtonElement;
-const drawBtn = document.getElementById("draw")! as HTMLButtonElement;
-
-const mainReg = document.getElementById("main-reg")!;
-const otherReg = document.getElementById("other-reg")!;
-const memoryBox = document.getElementById("memory")!;
-const opcodeBox = document.getElementById("opcode")!;
-
-const toHex = (num: number) => num.toString(16).padStart(2, "0");
-
-const updateUI = (opcode: number, mos: Mos6502) => {
-  const pc = mos.programCounter - 1;
-  mainReg.innerHTML = `
-  <code>A: ${mos.acc}/0x${mos.acc.toString(16).padStart(2, "0")}</code>
-  <code>X: ${mos.x}/0x${mos.x.toString(16).padStart(2, "0")}</code>
-  <code>Y: ${mos.y}/0x${mos.y.toString(16).padStart(2, "0")}</code>
-  `;
-  otherReg.innerHTML = `
-  <code>PC: ${pc}/0x${pc.toString(16).padStart(4, "0")}</code>
-  <code>SP: ${mos.stackPointer}/0x${mos.acc
-    .toString(16)
-    .padStart(4, "0")}</code>
-  <code>Status: 0b${mos.statusReg.status.toString(2).padStart(8, "0")}</code>
-  `;
-
-  // memory stuff
-  const memory = mos.memory;
-
-  memoryBox.innerText = `0x${pc.toString(16).padStart(4, "0")}: ${toHex(
-    memory[pc]
-  )} ${toHex(memory[pc + 1])} ${toHex(memory[pc + 2])} ${toHex(
-    memory[pc + 3]
-  )} ${toHex(memory[pc + 4])} ${toHex(memory[pc + 5])}`;
-
-  opcodeBox.innerText = `Opcode : 0x${opcode.toString(16).padStart(2, "0")}`;
-};
+const fpsCounter = document.getElementById("fps")!;
 
 loadRomInput.onclick = () => fileUploader.click();
 
@@ -58,12 +22,9 @@ fileUploader.onchange = async (e) => {
 
   const nes = new NES(buffer);
 
-  nmi.onclick = () => {
-    console.log("Triggering NMI");
-    nes.cpu.nmi();
-  };
-
   let halted = false;
+  let startTime = performance.now();
+  let frames = 0;
 
   halt.onclick = () => {
     halted = !halted;
@@ -71,13 +32,19 @@ fileUploader.onchange = async (e) => {
     halt.innerText = halted ? "Play" : "Pause";
   };
 
-  drawBtn.onclick = () => {
-    nes.ppu.updateScreen();
-    nes.cpu.nmi();
-  };
-
   try {
     // nes.cpu.programCounter = 0xc000;
+    nes.onFrame = () => {
+      frames++;
+      const currTime = performance.now();
+      const diff = currTime - startTime;
+      if (diff >= 1000) {
+        const fps = ((frames * 1000) / diff).toFixed(2);
+        fpsCounter.innerText = `FPS : ${fps}`;
+        startTime = performance.now();
+        frames = 0;
+      }
+    };
     nes.startAnimationLoop();
   } catch (error) {
     halt.innerText = "Err";
