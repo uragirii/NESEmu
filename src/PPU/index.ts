@@ -289,8 +289,14 @@ export class PPU {
     const attributeIdx = Math.floor(colX / 4) + attrY;
     const attribute = this.attributeTable[attributeIdx];
 
-    const lbAtr = colX % 2;
-    const hbAttr = rowY % 2;
+    // Okay i need to explain the thing im doing next
+    // One attribute is shared among 2x2 tiles and quad(rant)
+    // is based on where that tile lies in 4x4 grid.
+    // we modulo by 4 and then get high and low bit and combine to make quad(rant)
+    // top -left -> 0 (0,0) top right -> 1 (0,1), bottom right -> 3 (1,1), bottom left (1,0) => 2
+
+    const lbAtr = colX % 4 >> 1;
+    const hbAttr = rowY % 4 >> 1;
     const quad = (hbAttr << 1) + lbAtr;
 
     const paletteIdx = (attribute >> (quad * 2)) & 0b11;
