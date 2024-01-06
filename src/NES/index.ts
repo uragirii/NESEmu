@@ -9,6 +9,9 @@ export class NES {
   memory: Uint8Array;
   ppu: PPU;
 
+  halted = false;
+  rafId: number | null = null;
+
   constructor(buffer: Uint8Array) {
     this.file = new NESFile(buffer);
     this.ppu = new PPU(this);
@@ -17,7 +20,10 @@ export class NES {
     this.cpu.reset();
   }
 
-  startAnimationLoop() {
+  startAnimationLoop(): number | undefined {
+    if (this.halted) {
+      return;
+    }
     this.ppu.scanline = 0;
     while (this.ppu.scanline < 262) {
       const beforeCycle = this.cpu.cycles;
@@ -28,6 +34,22 @@ export class NES {
       this.ppu.runFor(cycles * 3);
     }
 
-    requestAnimationFrame(() => this.startAnimationLoop());
+    this.rafId = requestAnimationFrame(() => this.startAnimationLoop());
+  }
+
+  toggleHalt = () => {
+    this.halted = !this.halted;
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    if (!this.halted) {
+      this.startAnimationLoop();
+    }
+  };
+
+  dumpRegisters() {
+    this.cpu.dumpRegisters();
+    this.ppu.dumpRegisters();
   }
 }

@@ -67,7 +67,7 @@ fileUploader.onchange = async (e) => {
 
   halt.onclick = () => {
     halted = !halted;
-    nes.cpu.toggleHalt();
+    nes.toggleHalt();
     halt.innerText = halted ? "Play" : "Pause";
   };
 
@@ -78,11 +78,10 @@ fileUploader.onchange = async (e) => {
 
   try {
     // nes.cpu.programCounter = 0xc000;
-    requestAnimationFrame(() => nes.startAnimationLoop());
+    nes.startAnimationLoop();
   } catch (error) {
     halt.innerText = "Err";
     console.error(error);
-    nes.cpu.dumpRegisters();
-    nes.ppu.dumpRegisters();
+    nes.dumpRegisters();
   }
 };

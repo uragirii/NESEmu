@@ -38,7 +38,7 @@ export const createCPUMemory = (nes: NES) => {
   const memory = new Uint8Array(CPUMEMORY_SIZE);
 
   if (prgRom.byteLength > 2 * MAX_ROM_SIZE) {
-    throw "only 8kb rom supported";
+    throw "only 16kb rom supported";
   }
 
   if (prgRom.byteLength <= MAX_ROM_SIZE) {
