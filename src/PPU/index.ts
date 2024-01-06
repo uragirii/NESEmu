@@ -48,7 +48,6 @@ export class PPU {
   private screen: Renderer;
 
   scanline = 0;
-  private pixel = 0;
   private cycles = 0;
 
   private selectedNametable = new Uint8Array(
@@ -151,15 +150,6 @@ export class PPU {
       case 0x2007: {
         // data
         this.memory[this.dataAddress] = value;
-        // if (
-        //   this.dataAddress >= NAMETABLE_LOCATION &&
-        //   this.dataAddress < PALETTE_LOCATION
-        // ) {
-        //   this.debugNametable(this.dataAddress, value);
-        // } else if (this.dataAddress >= PALETTE_LOCATION) {
-        //   this.debugPalette(this.dataAddress);
-        // }
-
         this.dataAddress = this.normalizeAddress(
           this.dataAddress + this.vramInc
         );
@@ -202,9 +192,6 @@ export class PPU {
       case 0x2007: {
         const tempBuffer = this.dataBuffer;
         this.dataBuffer = this.memory[this.dataAddress];
-        // this.dataAddress = (this.dataAddress + this.vramInc) % 0x4000;
-
-        // this.dataAddress++;
         if (this.dataAddress >= PALETTE_LOCATION) {
           // palalette memory read happens in same cycle
           return this.dataBuffer;
@@ -259,8 +246,6 @@ export class PPU {
     this.scanline %= 262;
     if (this.cycles > 341) {
       if (this.scanline === 0) {
-        // console.log("NEW FRAME");
-        // await delayHalt(1);
         // Fetch nametable and attirbute tables
         this.selectedNametable.set(
           this.memory.slice(
@@ -302,12 +287,6 @@ export class PPU {
         const paletteIdx = (attribute >> quad) & 0b11;
         const palette = this.frameBgPalette[paletteIdx];
 
-        // console.log(
-        //   this.getTile(this.selectedNametable[x + nametableY]),
-        //   { x, nametableY, y, sum: x + nametableY },
-        //   this.selectedNametable.length
-        // );
-
         this.screen.drawTileAtNext(
           this.getTile(this.selectedNametable[x + nametableY]),
           x,
@@ -321,32 +300,6 @@ export class PPU {
   private drawScanline() {
     if (this.scanline === 1) {
       this.drawFrame();
-      // const attrY = 8 * Math.floor(y / 4);
-      // const nametableY = NAMETABLE_COLUMS * y;
-      // for (let x = 0; x < NAMETABLE_COLUMS; ++x) {
-      //   const attributeIdx = Math.floor(x / 4) + attrY;
-      //   const attribute = this.attributeTable[attributeIdx];
-
-      //   const lbAtr = x % 4 >> 1;
-      //   const hbAttr = y % 4 >> 1;
-      //   const quad = hbAttr << (1 + lbAtr);
-
-      //   const paletteIdx = (attribute >> quad) & 0b11;
-      //   const palette = this.frameBgPalette[paletteIdx];
-
-      //   // console.log(
-      //   //   this.getTile(this.selectedNametable[x + nametableY]),
-      //   //   { x, nametableY, y, sum: x + nametableY },
-      //   //   this.selectedNametable.length
-      //   // );
-
-      //   this.screen.drawTileAtNext(
-      //     this.getTile(this.selectedNametable[x + nametableY]),
-      //     x,
-      //     y,
-      //     palette
-      //   );
-      // }
     }
     // post render
     if (this.scanline === 241) {
