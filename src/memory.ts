@@ -45,7 +45,9 @@ export const createCPUMemory = (nes: NES) => {
     throw "only 16kb rom supported";
   }
 
-  if (prgRom.byteLength <= MAX_ROM_SIZE) {
+  const is8KbROM = prgRom.byteLength <= MAX_ROM_SIZE;
+
+  if (is8KbROM) {
     memory.set(prgRom, 0x8000);
     memory.set(prgRom, 0xc000);
   } else {
@@ -71,7 +73,7 @@ export const createCPUMemory = (nes: NES) => {
     /**
      * 0x8000 -> 0xFFFF repeat for 0x4000
      */
-    if (address >= CPU_ROM_LOCATION) {
+    if (address >= CPU_ROM_LOCATION && is8KbROM) {
       // TODO: this might be incorrect
       return ((address - CPU_ROM_LOCATION) % MAX_ROM_SIZE) + CPU_ROM_LOCATION;
     }
