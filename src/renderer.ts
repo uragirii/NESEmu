@@ -4,13 +4,6 @@ const RENDER_MAPS = new Map<string, Renderer>();
 
 export const TILE_SIZE = 8;
 
-const CHAR_TO_COLOR: Palette = [
-  [255, 255, 255, 255],
-  [238, 28, 37, 255],
-  [0, 101, 179, 255],
-  [254, 209, 176, 255],
-];
-
 type RendererOptions = {
   height: number;
   width: number;
@@ -71,33 +64,12 @@ export class Renderer {
     domElement.appendChild(this.canvas);
   };
 
-  public drawTileAt = (
-    tile: string[],
-    offsetX: number,
-    offsetY: number,
-    palette?: Palette
-  ) => {
-    tile.forEach((row, y) => {
-      const pixels = row.split("");
-      pixels.forEach((pixel, x) => {
-        const pixelColor = (palette ?? CHAR_TO_COLOR)[parseInt(pixel)];
-        this.ctx.fillStyle = `rgba(${pixelColor.join(",")})`;
-        this.ctx.fillRect(
-          offsetX * TILE_SIZE + x,
-          offsetY * TILE_SIZE + y,
-          1,
-          1
-        );
-      });
-    });
-  };
-
   private drawPixel(offsetX: number, offsetY: number, color: number[]) {
     const startIdx = (offsetY * this.width + offsetX) * 4;
     this.imageData.data.set(color, startIdx);
   }
 
-  public drawTileAtNext = (
+  public drawTileAt = (
     tile: string[],
     offsetX: number,
     offsetY: number,
@@ -121,7 +93,7 @@ export class Renderer {
 
   public render() {
     this.ctx.putImageData(this.imageData, 0, 0);
-    this.imageData.data.set(new Uint8ClampedArray(this.imageData.data.length));
+    this.imageData.data.fill(0);
   }
 
   public drawRect = (

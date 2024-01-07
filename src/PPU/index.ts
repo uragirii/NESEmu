@@ -18,6 +18,12 @@ import {
   screenRenderedCtn,
   FG_PALETTE_LOCATION,
   SPRITE_SIZE_MASK,
+  PPU_REG,
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
+  PPU_MAX_ADDR,
+  NAMETABLE_COUNT,
+  TOTAL_PALETTE_SIZE,
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
 import { Palette } from "../types";
@@ -68,15 +74,17 @@ export class PPU {
     }
     this.memory.set(chrRom);
     this.sprites = this.parseSprites(chrRom);
-    this.nametableRenderers = new Array(4).fill(0).map((_, index) => {
-      const renderer = createRenderer(`nametable-renderer-${index}`, {
-        height: NAMETABLE_ROWS * TILE_SIZE,
-        width: NAMETABLE_COLUMS * TILE_SIZE,
-      });
+    this.nametableRenderers = new Array(NAMETABLE_COUNT)
+      .fill(0)
+      .map((_, index) => {
+        const renderer = createRenderer(`nametable-renderer-${index}`, {
+          height: NAMETABLE_ROWS * TILE_SIZE,
+          width: NAMETABLE_COLUMS * TILE_SIZE,
+        });
 
-      // renderer.appendTo(nameTableRendereCtn);
-      return renderer;
-    });
+        // renderer.appendTo(nameTableRendereCtn);
+        return renderer;
+      });
     this.paletteRenderers = new Array(8).fill(0).map((_, index) => {
       const renderer = createRenderer(`palette-renderer-${index}`, {
         height: PALETTE_BLOCK_HEIGHT,
@@ -91,8 +99,8 @@ export class PPU {
       return renderer;
     });
     this.screen = createRenderer("screen", {
-      height: 240,
-      width: 256,
+      height: SCREEN_HEIGHT,
+      width: SCREEN_WIDTH,
       pixelMultiplier: 3,
     });
 
@@ -110,14 +118,33 @@ export class PPU {
     };
   }
 
+  /**
+   * |Address range|	Size|	Description|
+   * |----|--|--|
+   * |$0000-$0FFF|	$1000|	Pattern table 0|
+   * |$1000-$1FFF|	$1000|	Pattern table 1|
+   * |$2000-$23FF|	$0400|	Nametable 0|
+   * |$2400-$27FF|	$0400|	Nametable 1|
+   * |$2800-$2BFF|	$0400|	Nametable 2|
+   * |$2C00-$2FFF|	$0400|	Nametable 3|
+   * |$3000-$3EFF|	$0F00|	Mirrors of $2000-$2EFF|
+   * |$3F00-$3F1F|	$0020|	Palette RAM indexes|
+   * |$3F20-$3FFF|	$00E0|	Mirrors of $3F00-$3F1F|
+   *
+   * @param _address
+   * @returns
+   */
   private normalizeAddress = (_address: number) => {
-    let address = _address % 0x4000;
-    if (address >= 0x3000 && address < BG_PALETTE_LOCATION) {
+    let address = _address % PPU_MAX_ADDR;
+    if (
+      address >= NAMETABLE_LOCATION + NAMETABLE_SIZE * NAMETABLE_COUNT &&
+      address < BG_PALETTE_LOCATION
+    ) {
       // address is mirrored
-      address -= 0x1000;
+      address -= NAMETABLE_SIZE * NAMETABLE_COUNT;
     }
-    if (address > 0x3f1f) {
-      address -= 0x20;
+    if (address >= BG_PALETTE_LOCATION + TOTAL_PALETTE_SIZE) {
+      address -= TOTAL_PALETTE_SIZE;
     }
     return address;
   };
@@ -125,34 +152,34 @@ export class PPU {
   writePPUReg(address: number, value: number) {
     switch (address) {
       // PPUCTRL
-      case 0x2000: {
+      case PPU_REG.PPU_CTRL: {
         return this.setPPUCntrl(value);
       }
       // PPUMASK
-      case 0x2001: {
+      case PPU_REG.PPU_MASK: {
         // todo: implement maskng
         return;
       }
       // PPUSTATUS
-      case 0x2002: {
+      case PPU_REG.PPU_STATUS: {
         // only read allowed
         return;
       }
       // OAMADDR and OAMDATA
-      case 0x2003:
-      case 0x2004: {
+      case PPU_REG.OAM_ADDR:
+      case PPU_REG.OAM_DATA: {
         // TODO:
         return;
       }
 
       // PPUSCROLL
-      case 0x2005: {
+      case PPU_REG.PPU_SCROLL: {
         //todo:
         return;
       }
 
       // PPUADDR
-      case 0x2006: {
+      case PPU_REG.PPU_ADDR: {
         // address
         if (this.addressLatch === 0x00) {
           // hb of address
@@ -166,7 +193,7 @@ export class PPU {
       }
 
       // PPUDATA
-      case 0x2007: {
+      case PPU_REG.PPU_DATA: {
         // data
         this.memory[this.dataAddress] = value;
         this.dataAddress = this.normalizeAddress(
@@ -184,16 +211,16 @@ export class PPU {
 
   readPPUReg(address: number): number {
     switch (address) {
-      case 0x2000: {
+      case PPU_REG.PPU_CTRL: {
         // only write allowed
         return 0x00;
       }
-      case 0x2001: {
+      case PPU_REG.PPU_MASK: {
         // only write allowed
         return 0x00;
       }
 
-      case 0x2002: {
+      case PPU_REG.PPU_STATUS: {
         this.addressLatch = 0x00;
         if (this.inVBlank) {
           return 0x80;
@@ -201,14 +228,14 @@ export class PPU {
           return 0x00;
         }
       }
-      case 0x2003:
-      case 0x2004:
-      case 0x2005:
-      case 0x2006: {
+      case PPU_REG.OAM_ADDR:
+      case PPU_REG.OAM_DATA:
+      case PPU_REG.PPU_SCROLL:
+      case PPU_REG.PPU_ADDR: {
         return 0x00;
       }
       // PPUDATA
-      case 0x2007: {
+      case PPU_REG.PPU_DATA: {
         const tempBuffer = this.dataBuffer;
         this.dataBuffer = this.memory[this.dataAddress];
         if (this.dataAddress >= BG_PALETTE_LOCATION) {
@@ -227,34 +254,6 @@ export class PPU {
   dumpRegisters() {
     console.log(`Data Addr : ${this.dataAddress.toString(16)}`);
     console.log(`Data bufer : ${this.dataBuffer.toString(16)}`);
-  }
-
-  updateScreen() {
-    const nametable = this.memory.slice(
-      this.baseNametable,
-      this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE
-    );
-    const attributeTable = this.memory.slice(
-      this.baseNametable + NAMETABLE_SIZE - ATTRIBUTE_TABLE_SIZE,
-      this.baseNametable + NAMETABLE_SIZE
-    );
-
-    for (let i = 0; i < nametable.length; ++i) {
-      const x = i % NAMETABLE_COLUMS;
-      const y = Math.floor(i / NAMETABLE_COLUMS);
-
-      const attributeIdx = Math.floor(x / 4) + 8 * Math.floor(y / 4);
-      const attribute = attributeTable[attributeIdx];
-
-      const lbAtr = x % 4 >> 1;
-      const hbAttr = y % 4 >> 1;
-      const quad = hbAttr << (1 + lbAtr);
-
-      const paletteIdx = (attribute >> quad) & 0b11;
-      const palette = this.getPalette(paletteIdx);
-
-      this.screen.drawTileAt(this.getTile(nametable[i]), x, y, palette);
-    }
   }
 
   runFor(cycles: number) {
@@ -322,7 +321,7 @@ export class PPU {
     for (let rowY = 0; rowY < NAMETABLE_ROWS; ++rowY) {
       for (let colX = 0; colX < NAMETABLE_COLUMS; ++colX) {
         const { tile, palette } = this.getTileAndPalette(colX, rowY);
-        this.screen.drawTileAtNext(tile, colX, rowY, palette);
+        this.screen.drawTileAt(tile, colX, rowY, palette);
       }
     }
   }
@@ -363,7 +362,7 @@ export class PPU {
         sprite = sprite.map((line) => line.split("").reverse().join(""));
       }
 
-      this.screen.drawTileAtNext(
+      this.screen.drawTileAt(
         sprite,
         x,
         y,
@@ -419,7 +418,7 @@ export class PPU {
       this.getTile(spriteIdx),
       x,
       y,
-      paletteIdx !== undefined ? this.getPalette(paletteIdx) : undefined
+      this.getPalette(paletteIdx ?? 0)
     );
   }
 

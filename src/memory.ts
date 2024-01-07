@@ -4,17 +4,21 @@ import { Controller } from "./controller";
 const CPUMEMORY_SIZE = 2 ** 16;
 
 const MAX_ROM_SIZE = 0x4000;
+const CPU_ROM_LOCATION = 0x8000;
 
-const TEMP_RECORD = {
-  2000: "PPUCTRL",
-  2001: "PPUMARK",
-  2002: "PPUSTATUS",
-  2003: "OAMADDR",
-  2004: "OAMDATA",
-  2005: "PPUSCRILL",
-  2006: "PPUADDR",
-  2007: "PPUDATA",
-};
+const PAGE_SIZE = 0x100; // 256 not 255
+
+const INTERNAL_RAM_LEN = 0x800;
+
+const PPU_REG_LOCATION = 0x2000;
+const PPU_REG_LEN = 0x8;
+
+const CONTROLLER_1_LOCATION = 0x4016;
+const CONTROLLER_2_LOCATION = 0x4017;
+
+const CPU_IO_LOCATION = 0x4000;
+
+const DMA_LOCATION = 0x4014;
 
 const controller1 = new Controller();
 
@@ -51,23 +55,25 @@ export const createCPUMemory = (nes: NES) => {
   const getParsedAddress = (address: number) => {
     /**
      * 0x0000 -> 0x2000 is repeated for every 0x800
+     * This is 2KB of internal RAM
      */
-    if (address < 0x2000) {
-      return address % 0x800;
+    if (address < PPU_REG_LOCATION) {
+      return address % INTERNAL_RAM_LEN;
     }
 
     /**
      * 0x2000 -> 0x2008 repeat for 0x8
      */
-    if (address < 0x4000) {
-      return ((address - 0x2000) % 0x8) + 0x2000;
+    if (address < CPU_IO_LOCATION) {
+      return ((address - PPU_REG_LOCATION) % PPU_REG_LEN) + PPU_REG_LOCATION;
     }
 
     /**
      * 0x8000 -> 0xFFFF repeat for 0x4000
      */
-    if (address >= 0x8000) {
-      return ((address - 0x8000) % 0x4000) + 0x8000;
+    if (address >= CPU_ROM_LOCATION) {
+      // TODO: this might be incorrect
+      return ((address - CPU_ROM_LOCATION) % MAX_ROM_SIZE) + CPU_ROM_LOCATION;
     }
     return address;
   };
@@ -89,22 +95,21 @@ export const createCPUMemory = (nes: NES) => {
 
       const parsedAddress = getParsedAddress(address);
 
-      if (parsedAddress === 0x4016) {
+      if (parsedAddress === CONTROLLER_1_LOCATION) {
         const msb = controller1.buffer >> 7;
 
         controller1.buffer = (controller1.buffer << 1) & 0xff;
         // mimic open bus behaviour
-        return msb | 0x40;
+        // OR with upper byte of the address
+        return msb | (CONTROLLER_1_LOCATION >> 8);
       }
 
-      if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
+      if (
+        parsedAddress >= PPU_REG_LOCATION &&
+        parsedAddress < PPU_REG_LOCATION + PPU_REG_LEN
+      ) {
         // this is PPU space
         const ppuReg = nes.ppu.readPPUReg(parsedAddress);
-        // console.log(
-        //   `R 0x${
-        //     TEMP_RECORD[parsedAddress.toString(16) as "2000"]
-        //   } 0x${ppuReg.toString(16)}`
-        // );
         return ppuReg;
       }
 
@@ -123,16 +128,16 @@ export const createCPUMemory = (nes: NES) => {
 
       const parsedAddress = getParsedAddress(address);
 
-      if (parsedAddress === 0x4014) {
+      if (parsedAddress === DMA_LOCATION) {
         // This is OAM DMA -> Fast method to copy sprites
         // 0xXX00 -> 0xXXFF is copied to PPU
 
         nes.ppu.directMemoryAccess(
-          memory.slice(newValue << 8, (newValue << 8) + 256)
+          memory.slice(newValue << 8, (newValue << 8) + PAGE_SIZE)
         );
       }
 
-      if (parsedAddress === 0x4016) {
+      if (parsedAddress === CONTROLLER_1_LOCATION) {
         // controllerBuffer = DOWN;
         // console.log(
         //   `W CONTROLLER 0x${newValue.toString(16)} 0b${newValue.toString(2)}`,
@@ -148,7 +153,10 @@ export const createCPUMemory = (nes: NES) => {
         return true;
       }
 
-      if (parsedAddress >= 0x2000 && parsedAddress < 0x2008) {
+      if (
+        parsedAddress >= PPU_REG_LOCATION &&
+        parsedAddress < PPU_REG_LOCATION + PPU_REG_LEN
+      ) {
         // console.log(
         //   `W 0x${
         //     TEMP_RECORD[parsedAddress.toString(16) as "2000"]

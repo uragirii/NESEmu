@@ -1,5 +1,21 @@
 import { TILE_SIZE } from "../renderer";
 
+export const PPU_REG = {
+  PPU_CTRL: 0x2000,
+  PPU_MASK: 0x2001,
+  PPU_STATUS: 0x2002,
+  OAM_ADDR: 0x2003,
+  OAM_DATA: 0x2004,
+  PPU_SCROLL: 0x2005,
+  PPU_ADDR: 0x2006,
+  PPU_DATA: 0x2007,
+} as const;
+
+export const SCREEN_HEIGHT = 240;
+export const SCREEN_WIDTH = 256;
+
+export const PPU_MAX_ADDR = 0x4000;
+
 export const NAME_TABLE_MASK = 0b11;
 export const VRAM_INC_MASK = 0b100;
 
@@ -10,11 +26,14 @@ export const SPRITE_SIZE_MASK = 0b00100_0000;
 
 export const BG_PALETTE_LOCATION = 0x3f00;
 export const FG_PALETTE_LOCATION = 0x3f10;
+export const TOTAL_PALETTE_SIZE = 0x20;
+
 export const NAMETABLE_LOCATION = 0x2000;
 /**
  * This size includes the attribute table also. Actual size is NOT 0x400 but 0x3c0
  */
 export const NAMETABLE_SIZE = 0x400;
+export const NAMETABLE_COUNT = 4;
 
 export const PALETTE_BLOCK_WIDTH = 4 * TILE_SIZE;
 export const PALETTE_BLOCK_HEIGHT = 3 * TILE_SIZE;
