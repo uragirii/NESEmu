@@ -101,7 +101,8 @@ export class Renderer {
     tile: string[],
     offsetX: number,
     offsetY: number,
-    palette: Palette
+    palette: Palette,
+    isFine = false
   ) => {
     tile.forEach((row, y) => {
       const pixels = row.split("");
@@ -110,8 +111,8 @@ export class Renderer {
           return;
         }
         this.drawPixel(
-          offsetX * TILE_SIZE + x,
-          offsetY * TILE_SIZE + y,
+          (isFine ? offsetX : offsetX * TILE_SIZE) + x,
+          (isFine ? offsetY : offsetY * TILE_SIZE) + y,
           palette[parseInt(pixel)]
         );
       });

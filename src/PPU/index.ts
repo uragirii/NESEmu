@@ -344,12 +344,6 @@ export class PPU {
   }
 
   private drawForeground() {
-    const validForegroundSprites: {
-      x: number;
-      y: number;
-      paletteIdx: number;
-      spriteIdx: number;
-    }[] = [];
     for (let idx = 0; idx < this.oam.length; idx += 4) {
       const y = this.oam[idx];
       const spriteIdx = this.oam[idx + 1];
@@ -371,16 +365,11 @@ export class PPU {
 
       this.screen.drawTileAtNext(
         sprite,
-        Math.floor(x / 8),
-        Math.floor(y / 8),
-        this.getPalette(paletteIdx, true)
+        x,
+        y,
+        this.getPalette(paletteIdx, true),
+        true
       );
-      validForegroundSprites.push({
-        x: x / 8,
-        y: y / 8,
-        spriteIdx,
-        paletteIdx,
-      });
     }
     // this.screen.drawTileAt(this.getTile());
   }
