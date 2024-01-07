@@ -5,7 +5,7 @@ import {
   NAMETABLE_SIZE,
   NAME_TABLE_MASK,
   NMI_ENABLE_MASK,
-  PALETTE_LOCATION,
+  BG_PALETTE_LOCATION,
   SPRITE_MASK,
   VRAM_INC_MASK,
   nameTableRendereCtn,
@@ -16,6 +16,8 @@ import {
   NAMETABLE_COLUMS,
   ATTRIBUTE_TABLE_SIZE,
   screenRenderedCtn,
+  FG_PALETTE_LOCATION,
+  SPRITE_SIZE_MASK,
 } from "./constants";
 import { Renderer, TILE_SIZE, createRenderer } from "../renderer";
 import { Palette } from "../types";
@@ -23,9 +25,8 @@ import type { NES } from "../NES";
 
 export class PPU {
   private nmiEnable = false;
-  private masterSlave = true;
 
-  private spriteSize = 0;
+  private spriteSize = 8;
 
   private inVBlank = false;
 
@@ -55,6 +56,7 @@ export class PPU {
   );
   private attributeTable = new Uint8Array(ATTRIBUTE_TABLE_SIZE);
   private frameBgPalette: Palette[] = [];
+  private oam = new Uint8Array(256);
 
   private nes: NES;
 
@@ -91,7 +93,7 @@ export class PPU {
     this.screen = createRenderer("screen", {
       height: 240,
       width: 256,
-      pixelMultiplier: 2,
+      pixelMultiplier: 3,
     });
 
     this.screen.appendTo(screenRenderedCtn);
@@ -110,7 +112,7 @@ export class PPU {
 
   private normalizeAddress = (_address: number) => {
     let address = _address % 0x4000;
-    if (address >= 0x3000 && address < PALETTE_LOCATION) {
+    if (address >= 0x3000 && address < BG_PALETTE_LOCATION) {
       // address is mirrored
       address -= 0x1000;
     }
@@ -136,8 +138,14 @@ export class PPU {
         // only read allowed
         return;
       }
+      // OAMADDR and OAMDATA
       case 0x2003:
-      case 0x2004:
+      case 0x2004: {
+        // TODO:
+        return;
+      }
+
+      // PPUSCROLL
       case 0x2005: {
         //todo:
         return;
@@ -203,7 +211,7 @@ export class PPU {
       case 0x2007: {
         const tempBuffer = this.dataBuffer;
         this.dataBuffer = this.memory[this.dataAddress];
-        if (this.dataAddress >= PALETTE_LOCATION) {
+        if (this.dataAddress >= BG_PALETTE_LOCATION) {
           // palalette memory read happens in same cycle
           return this.dataBuffer;
         }
@@ -323,6 +331,9 @@ export class PPU {
     if (this.scanline === 1) {
       this.drawFrame();
     }
+    if (this.scanline === 2) {
+      this.drawForeground();
+    }
     // post render
     if (this.scanline === 241) {
       this.screen.render();
@@ -332,29 +343,73 @@ export class PPU {
     }
   }
 
-  private getPalette(idx: number): Palette {
-    const startLocation = PALETTE_LOCATION + idx * 4;
+  private drawForeground() {
+    const validForegroundSprites: {
+      x: number;
+      y: number;
+      paletteIdx: number;
+      spriteIdx: number;
+    }[] = [];
+    for (let idx = 0; idx < this.oam.length; idx += 4) {
+      const y = this.oam[idx];
+      const spriteIdx = this.oam[idx + 1];
+      const attributes = this.oam[idx + 2];
+      const paletteIdx = attributes & 0b11;
+      const x = this.oam[idx + 3];
+
+      if (y >= 0xef) {
+        continue;
+      }
+      let sprite = this.getTile(spriteIdx, true);
+
+      if ((attributes & 0b1000_0000) !== 0b1000_0000) {
+        sprite = sprite.slice().reverse();
+      }
+      if ((attributes & 0b0100_0000) !== 0b0100_0000) {
+        sprite = sprite.map((line) => line.split("").reverse().join());
+      }
+
+      this.screen.drawTileAtNext(
+        this.getTile(spriteIdx, true),
+        Math.floor(x / 8),
+        Math.floor(y / 8),
+        this.getPalette(paletteIdx, true)
+      );
+      validForegroundSprites.push({
+        x: x / 8,
+        y: y / 8,
+        spriteIdx,
+        paletteIdx,
+      });
+    }
+    // this.screen.drawTileAt(this.getTile());
+  }
+
+  private getPalette(idx: number, isForeground = false): Palette {
+    const location = isForeground ? FG_PALETTE_LOCATION : BG_PALETTE_LOCATION;
+    const startLocation = location + idx * 4;
     return new Array(4)
       .fill(0)
       .map((_, colorIdx) =>
         colorIdx === 0
-          ? PPU_COLORS[this.memory[PALETTE_LOCATION]]
+          ? PPU_COLORS[this.memory[BG_PALETTE_LOCATION]]
           : PPU_COLORS[this.memory[startLocation + colorIdx]]
       );
   }
 
   private debugGetPaletteRaw(idx: number) {
-    const startLocation = PALETTE_LOCATION + idx * 4;
+    const startLocation = BG_PALETTE_LOCATION + idx * 4;
     return new Array(4)
       .fill(0)
       .map((_, colorIdx) =>
         colorIdx === 0
-          ? this.memory[PALETTE_LOCATION].toString(16).padStart(2, "0")
+          ? this.memory[BG_PALETTE_LOCATION].toString(16).padStart(2, "0")
           : this.memory[startLocation + colorIdx].toString(16).padStart(2, "0")
       );
   }
 
-  private getTile = (idx: number) => this.sprites[this.bgSpriteAddr + idx];
+  private getTile = (idx: number, isForeground = false) =>
+    this.sprites[(isForeground ? this.spriteAddr : this.bgSpriteAddr) + idx];
 
   private debugNametable(
     address: number,
@@ -380,7 +435,7 @@ export class PPU {
   }
 
   private debugPalette(address: number) {
-    const paletteIdx = Math.floor((address - PALETTE_LOCATION) / 4);
+    const paletteIdx = Math.floor((address - BG_PALETTE_LOCATION) / 4);
     const palette = this.getPalette(paletteIdx);
 
     palette.forEach((color, idx) => {
@@ -443,10 +498,13 @@ export class PPU {
     this.baseNametable = NAMETABLE_LOCATION + nameTable * NAMETABLE_SIZE;
 
     this.vramInc = (value & VRAM_INC_MASK) === VRAM_INC_MASK ? 32 : 1;
-    this.spriteAddr = (value & SPRITE_MASK) === SPRITE_MASK ? 0x1000 : 0x0000;
+    this.spriteAddr = (value & SPRITE_MASK) === SPRITE_MASK ? 256 : 0;
     this.bgSpriteAddr = (value & BG_SPRITE_MASK) === BG_SPRITE_MASK ? 256 : 0;
-
-    // todo:read sprite pattern
+    this.spriteSize = (value & SPRITE_SIZE_MASK) === SPRITE_SIZE_MASK ? 16 : 8;
     this.nmiEnable = (value & NMI_ENABLE_MASK) === NMI_ENABLE_MASK;
+  }
+
+  directMemoryAccess(data: Uint8Array) {
+    this.oam.set(data);
   }
 }

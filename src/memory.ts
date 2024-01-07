@@ -123,6 +123,15 @@ export const createCPUMemory = (nes: NES) => {
 
       const parsedAddress = getParsedAddress(address);
 
+      if (parsedAddress === 0x4014) {
+        // This is OAM DMA -> Fast method to copy sprites
+        // 0xXX00 -> 0xXXFF is copied to PPU
+
+        nes.ppu.directMemoryAccess(
+          memory.slice(newValue << 8, (newValue << 8) + 256)
+        );
+      }
+
       if (parsedAddress === 0x4016) {
         // controllerBuffer = DOWN;
         // console.log(

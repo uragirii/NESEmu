@@ -106,6 +106,9 @@ export class Renderer {
     tile.forEach((row, y) => {
       const pixels = row.split("");
       pixels.forEach((pixel, x) => {
+        if (pixel === "0") {
+          return;
+        }
         this.drawPixel(
           offsetX * TILE_SIZE + x,
           offsetY * TILE_SIZE + y,
@@ -117,6 +120,7 @@ export class Renderer {
 
   public render() {
     this.ctx.putImageData(this.imageData, 0, 0);
+    this.imageData.data.set(new Uint8ClampedArray(this.imageData.data.length));
   }
 
   public drawRect = (

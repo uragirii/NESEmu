@@ -6,8 +6,10 @@ export const VRAM_INC_MASK = 0b100;
 export const SPRITE_MASK = 0b1000;
 export const BG_SPRITE_MASK = 0b1_0000;
 export const NMI_ENABLE_MASK = 0b1000_0000;
+export const SPRITE_SIZE_MASK = 0b00100_0000;
 
-export const PALETTE_LOCATION = 0x3f00;
+export const BG_PALETTE_LOCATION = 0x3f00;
+export const FG_PALETTE_LOCATION = 0x3f10;
 export const NAMETABLE_LOCATION = 0x2000;
 /**
  * This size includes the attribute table also. Actual size is NOT 0x400 but 0x3c0
