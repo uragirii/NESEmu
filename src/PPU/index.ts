@@ -362,15 +362,15 @@ export class PPU {
       }
       let sprite = this.getTile(spriteIdx, true);
 
-      if ((attributes & 0b1000_0000) !== 0b1000_0000) {
+      if ((attributes & 0b1000_0000) === 0b1000_0000) {
         sprite = sprite.slice().reverse();
       }
-      if ((attributes & 0b0100_0000) !== 0b0100_0000) {
-        sprite = sprite.map((line) => line.split("").reverse().join());
+      if ((attributes & 0b0100_0000) === 0b0100_0000) {
+        sprite = sprite.map((line) => line.split("").reverse().join(""));
       }
 
       this.screen.drawTileAtNext(
-        this.getTile(spriteIdx, true),
+        sprite,
         Math.floor(x / 8),
         Math.floor(y / 8),
         this.getPalette(paletteIdx, true)
