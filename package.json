@@ -15,5 +15,8 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.0",
     "vitest": "^0.34.6"
+  },
+  "dependencies": {
+    "idb": "^8.0.0"
   }
 }
