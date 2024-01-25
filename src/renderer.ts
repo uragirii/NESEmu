@@ -79,9 +79,6 @@ export class Renderer {
     tile.forEach((row, y) => {
       const pixels = row.split("");
       pixels.forEach((pixel, x) => {
-        if (pixel === "0") {
-          return;
-        }
         this.drawPixel(
           (isFine ? offsetX : offsetX * TILE_SIZE) + x,
           (isFine ? offsetY : offsetY * TILE_SIZE) + y,

@@ -101,7 +101,7 @@ export class PPU {
     this.screen = createRenderer("screen", {
       height: SCREEN_HEIGHT,
       width: SCREEN_WIDTH,
-      pixelMultiplier: 2,
+      pixelMultiplier: 3,
     });
 
     this.screen.appendTo(screenRenderedCtn);
@@ -196,6 +196,15 @@ export class PPU {
       case PPU_REG.PPU_DATA: {
         // data
         this.memory[this.dataAddress] = value;
+        if (
+          this.dataAddress >= BG_PALETTE_LOCATION &&
+          this.dataAddress <= BG_PALETTE_LOCATION + TOTAL_PALETTE_SIZE
+        ) {
+          // The 4th color is same as the universal bg color
+          if (this.dataAddress % 4 === 0) {
+            this.memory[BG_PALETTE_LOCATION] = value;
+          }
+        }
         this.dataAddress = this.normalizeAddress(
           this.dataAddress + this.vramInc
         );
@@ -331,7 +340,7 @@ export class PPU {
       this.drawFrame();
     }
     if (this.scanline === 2) {
-      this.drawForeground();
+      // this.drawForeground();
     }
     // post render
     if (this.scanline === 241) {
